@@ -1,0 +1,96 @@
+service: aws-remote-websocket-serverless
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.12
+  stage: ${opt:stage, 'dev'}
+  region: eu-central-1
+  timeout: 900
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+            - "dynamodb:DeleteItem"
+            - "dynamodb:Scan"
+          Resource:
+            - { "Fn::GetAtt": ["ClientsTable", "Arn"] }
+
+        - Effect: Allow
+          Action:
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
+            - "dynamodb:DeleteItem"
+            - "dynamodb:Scan"
+          Resource:
+            - { "Fn::GetAtt": ["IRRemotes", "Arn"] }
+
+  environment: 
+    CLIENTS_TABLE_NAME: ${self:provider.stage}WSClients
+    REMOTES_TABLE_NAME: ${self:provider.stage}IRRemotes
+    WSSAPIGATEWAYENDPOINT:
+      Fn::Join:
+        - ""
+        - - "https://"
+          - Ref: WebsocketsApi
+          - ".execute-api."
+          - Ref: AWS::Region
+          - ".amazonaws.com/${sls:stage}"
+
+
+functions:
+  websocketHandler:
+    handler: src/handler.handle
+    events:
+      - websocket:
+          route: $connect
+      - websocket:
+          route: $disconnect
+      - websocket:
+          route: msg
+
+
+plugins:
+  - serverless-python-requirements
+
+resources:
+  Resources:
+    ClientsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.CLIENTS_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
+
+    IRRemotes:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.REMOTES_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: remoteName
+            AttributeType: S
+          # - AttributeName: protocol
+          #   AttributeType: S
+          # - AttributeName: commandSize
+          #   AttributeType: S
+          # - AttributeName: buttons
+          #   AttributeType: L
+        KeySchema:
+          - AttributeName: remoteName
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
