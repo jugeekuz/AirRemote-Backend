@@ -31,9 +31,20 @@ provider:
           Resource:
             - { "Fn::GetAtt": ["IRRemotes", "Arn"] }
 
+        - Effect: Allow
+          Action:
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
+            - "dynamodb:DeleteItem"
+            - "dynamodb:Scan"
+          Resource:
+            - { "Fn::GetAtt": ["IoTDevices", "Arn"] }
+
   environment: 
     CLIENTS_TABLE_NAME: ${self:provider.stage}WSClients
     REMOTES_TABLE_NAME: ${self:provider.stage}IRRemotes
+    IOT_DEVICES_TABLE_NAME: ${self:provider.stage}IoTDevices
     WSSAPIGATEWAYENDPOINT:
       Fn::Join:
         - ""
@@ -90,6 +101,24 @@ resources:
           #   AttributeType: L
         KeySchema:
           - AttributeName: remoteName
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
+
+    IoTDevices:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.IOT_DEVICES_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: macAddress
+            AttributeType: S
+          # - AttributeName: deviceName
+          #   AttributeType: S
+          # - AttributeName: deviceType
+          #   AttributeType: S
+        KeySchema:
+          - AttributeName: macAddress
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 2

@@ -70,7 +70,7 @@ class WebSocket:
             print(e)
             return
 
-    def send_message_all(self, this_connection_id: str, body: dict):
+    def send_broadcast(self, this_connection_id: str, body: dict):
         '''
         Function sending `body` to all connections, except `this_connection_id`.
         :param this_connection_id: Connection Id sending the message
