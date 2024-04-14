@@ -79,6 +79,8 @@ resources:
         AttributeDefinitions:
           - AttributeName: connectionId
             AttributeType: S
+        # - AttributeName: deviceType
+        #   AttributeType: S
         KeySchema:
           - AttributeName: connectionId
             KeyType: HASH
@@ -93,6 +95,8 @@ resources:
         AttributeDefinitions:
           - AttributeName: remoteName
             AttributeType: S
+          - AttributeName: deviceID
+            AttributeType: S
           # - AttributeName: protocol
           #   AttributeType: S
           # - AttributeName: commandSize
@@ -101,6 +105,8 @@ resources:
           #   AttributeType: L
         KeySchema:
           - AttributeName: remoteName
+            KeyType: HASH
+          - AttributeName: deviceID
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 2
@@ -116,6 +122,8 @@ resources:
           # - AttributeName: deviceName
           #   AttributeType: S
           # - AttributeName: deviceType
+          #   AttributeType: S
+          # - AttributeName: connectionId
           #   AttributeType: S
         KeySchema:
           - AttributeName: macAddress

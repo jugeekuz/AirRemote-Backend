@@ -1,52 +1,48 @@
 import os
 import json
-from typing import Dict, Any
 import boto3
-from .apigateway_handler.ws_module import WebSocket
-from .models.remote_module import Remote
+from .models.model_handler import ObjectDynamodb
+from .websockets_handler.ws_module import WebSocket
+from .controllers.remotes_controller import Remote
 
-dynamo_db_client = boto3.client('dynamodb')
-api_gateway_client = boto3.client('apigatewaymanagementapi', endpoint_url=os.getenv("WSSAPIGATEWAYENDPOINT"))
-
-clients_table = os.getenv("CLIENTS_TABLE_NAME", "")
-remotes_table = os.getenv("REMOTES_TABLE_NAME", "")
-
-response_ok = {
-    "statusCode": 200,
-    "body": "OK"
-}
-
+dynamo_db = boto3.client('dynamodb')
+api_gateway = boto3.client('apigatewaymanagementapi', endpoint_url=os.getenv("WSSAPIGATEWAYENDPOINT"))
 
 def handle(event, context):
+    try:
+        connection_id = str(event["requestContext"]["connectionId"])
+        routeKey = event["requestContext"]["routeKey"]
+        
+        #DynamoDB Models
+        remote_model = ObjectDynamodb(dynamo_db, os.getenv("REMOTES_TABLE_NAME", ""))
+        clients_model = ObjectDynamodb(dynamo_db, os.getenv("CLIENTS_TABLE_NAME", ""))
+        iot_devices_model = ObjectDynamodb(dynamo_db, os.getenv("IOT_DEVICES_TABLE_NAME", ""))
 
-    connection_id = str(event["requestContext"]["connectionId"])
-    route_key = str(event["requestContext"]["routeKey"])
-    body = event.get('body', '')
-    if body:
-        body = json.loads(body)
+        #WebSocket Gateway
+        web_socket = WebSocket(api_gateway, clients_model)
 
-    web_socket = WebSocket(dynamo_db_client, api_gateway_client, clients_table)
-    remote = Remote(dynamo_db_client, api_gateway_client, remotes_table, web_socket)
+        #Controllers
+        remote_controller = Remote(remote_model, web_socket)
 
-    match (route_key):
-        case "$connect":
-            return web_socket.connect(connection_id)
-        case "$disconnect":
-            return web_socket.disconnect(connection_id)
-        case _:
-            match (body["type"]):
-                case "info":
-                    return response_ok
-                case "error":
-                    return response_ok
-                case "cmd":
-                    response = remote.handle_command(body)
-                    web_socket.send_broadcast("junk", response)
-                    return response_ok
+        if routeKey == "$connect":
+            return web_socket.handle_connect(connection_id)
+        elif routeKey == "$disconnect":
+            return web_socket.handle_disconnect(connection_id)
+        else:
+            body = json.loads(event.get('body', ''))
+            if body["type"] == "cmd":
+                response = remote_controller.handle(body)
+                web_socket.send_message(connection_id, response)
 
-    #send error message
-    return {
-        "statusCode": 400,
-        "body": "Bad Request"
-    }
+                return {"statusCode": 200,
+                        "body": "OK"}
+            
+            elif body["type"] == "confirm":
+    
+            
+    except Exception as e:
+        return {
+            "statusCode": 400,
+            "body": "Bad Request"
+        }
 
