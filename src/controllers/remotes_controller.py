@@ -1,5 +1,5 @@
 from ..models.model_handler import ObjectDynamodb
-from ..websockets_handler.ws_module import WebSocket
+from ..websockets.websockets_handler import WebSocket
 class Remote:
     '''
     Class used to handle remote control commands.
@@ -13,25 +13,22 @@ class Remote:
     def handle(self, body):
         match body['command']:
             case "getRemotes":
-                return self.get_items()
+                return self.remote_model.get_items()
             
             case "getRemote":
-                return self.get_item(body["remote"])
+                return self.remote_model.get_item(body["remote"])
             
             case "addRemote":
-                return self.add_item(body["remote"])
+                return self.remote_model.add_item(body["remote"])
             
             case "addButton":
-                return self.append_to_list(body["remote"], "buttons", body["button"])
+                return self.remote_model.append_to_list(body["remote"], "buttons", body["button"])
             
             case "deleteRemote":
-                return self.delete_item(body["remote"])
+                return self.remote_model.delete_item(body["remote"])
             
             case "sendCode":
-                remote = body["remote"]
-                device = body["device"]
-                button = body["button"]
-                self.websocket.send_message(device, )
+                pass
 
             case "receiveCode":
                 pass 

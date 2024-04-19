@@ -1,100 +1,92 @@
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
-from boto3.dynamodb.conditions import Attr, And
+from boto3.dynamodb.conditions import Attr, And, Key
+from ..utils.helpers import serialize_item, serialize_items, deserialize_item, deserialize_items, error_handler
 
-def error_handler(func):
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            return {"statusCode": 500,
-                    "body": f"Received unexpected error: {e}"}
-    return wrapper
 
 class ObjectDynamodb:
+    '''
+    Class used to abstract over certain DynamoDB operations. 
+    A DynamoDB resource and a table are passed and the class provides methods to add, get, update items and more.
+    '''
     def __init__(self, dynamo_db, table: str):
+        '''
+        :param `dynamo_db`: boto3 DynamoDB resource
+        :param str `table`: Name of the table to perform operations on.
+        '''
         self.dynamo_db = dynamo_db
         self.table = table
 
-    def _serialize_item(self, dict: dict):
-        '''
-        Method used to serialize data in appropriate format for DynamoDB.
-        '''
-        serializer = TypeSerializer()
-        return {
-            k: serializer.serialize(v)
-            for k, v in dict.items()
-        }
-    
-    def _serialize_items(self, list: list):
-        '''
-        Method used to serialize a list of data in appropriate format for DynamoDB.
-        '''
-        return [self._serialize_item(item) for item in list]
-    
-
-    def _deserialize_item(self, dynamo_obj: dict):
-        '''
-        Method used to deserialize data from DynamoDB format to Python dictionary.
-        '''
-        deserializer = TypeDeserializer()
-        return {
-            k: deserializer.deserialize(v) 
-            for k, v in dynamo_obj.items()
-        } 
-    def _deserialize_items(self, dynamo_obj_list: list):
-        return [self._deserialize_dynamodb_item(item) for item in dynamo_obj_list]
     
     @error_handler
     def get_items(self):
         '''
-        Method used to get all items of a given table.
+        Method used to get all items of `self.table`.
+
+        :return : Response 200 with items in `body` or Response 500 error.
         '''
         response = self.dynamo_db.scan(
             TableName=self.table
         )
-        result = self._deserialize_items(response["Items"])
+        result = deserialize_items(response["Items"])
         return {"statusCode": 200,
                 "body": result}
 
     @error_handler
     def get_item(self, key: dict):
         '''
-        Method used to get particular item from table specified by a key.
+        Method used to get particular item from `self.table` specified by a key.
+
+        :param dict `key`: The key to search by.
+        :return : Response 200 with key in `body` if key exists or Response 404 or Response 500 error.
         '''
-        key = self._serialize_item(key)
+        key = serialize_item(key)
         response = self.dynamo_db.get_item(
             TableName=self.table,
             Key=key
         )            
-
-        if (res := self._deserialize_dynamodb_item(response["Item"])):
-            return {"statusCode": 200,
-                    "body": res}
-        
-        else:
+        if not response["Item"]:
             return {"statusCode": 404,
-                    "body": "Content Not Found"}
+                    "body": {}}
+        
+        return {"statusCode": 200,
+                "body": deserialize_item(response["Item"])}
+    
     
     @error_handler
-    def scan_item(self, item: dict):
+    def scan_items(self, filter: dict = None):
         '''
-        Method used to get an item that matches all specific key-value pairs in `item`.
-        '''
-        filter_expressions = [Attr(k).eq(v) for k,v in item.items()]
+        Method used to get all items that match all specific key-value pairs in `filter`.
 
-        response = self.dynamo_db.scan(
-            TableName=self.table,
-            FilterExpression=And(*filter_expressions)
-        )
+        :param dict `filter`: Key-value pairs to use as filter expressions for items (can be left empty to scan all items).
+        :return : Response 200 with list of items that match filtering or Response 500 error.
+        '''
+        scan_kwargs = {
+            'TableName': self.table,
+            'Select': 'ALL_ATTRIBUTES'  
+        }
+        
+        if filter:
+            filter_expression = ' AND '.join([f"{k} = :{k}" for k in filter.keys()])
+            expression_attribute_values = serialize_item({f":{k}": v for k, v in filter.items()})
+            
+            scan_kwargs['FilterExpression'] = filter_expression
+            scan_kwargs['ExpressionAttributeValues'] = expression_attribute_values
+
+        response = self.dynamo_db.scan(**scan_kwargs)
+
         return {"statusCode": 200,
-                "body": response["Items"]}
+                "body": deserialize_items(response["Items"])}
     
+
     @error_handler
     def add_item(self, item: dict):
         '''
-        Method used to add an item to the table.
+        Method used to add  `item` to `self.table`.
+
+        :param dict `item`: The item to add.
+        :return : Response 201 or Response 500 error.
         '''
-        item = self._serialize_item(item)
+        item = serialize_item(item)
         response = self.dynamo_db.put_item(
             TableName=self.table,
             Item=item
@@ -106,9 +98,12 @@ class ObjectDynamodb:
     @error_handler
     def delete_item(self, key: dict):
         '''
-        Method used to delete an key from the table specified by key.
+        Method used to delete an key from `self.table` specified by `key`.
+
+        :param dict `key`: The key of the item to delete.
+        :return : Response 200 or Response 500 error.
         '''
-        key = self._serialize_item(key)
+        key = serialize_item(key)
         response = self.dynamo_db.delete_item(
             TableName=self.table,
             Key=key
@@ -117,13 +112,18 @@ class ObjectDynamodb:
                 "body": "deleted"}
         
     @error_handler
-    def update_item(self, key: dict, item: dict):
+    def update_item(self, key: dict, new_values: dict):
         '''
-        Method used to update all columns of an item specified by `key` to the values specified in key-value pairs in `item`.
+        Method used to update an item matching `key` by changing all columns to the values specified by key-value pairs in `new_values`.
+
+        :param dict `key`: Key of the item to update.
+        :param dict `new_values`: New values of equivalent columns in key-value pairs.
+        :return : Response 200 or Response 500 error.
         '''
-        key = self._serialize_item(key)
-        update_expression = "SET " + ", ".join(f"{k} = :{k}" for k in item.keys())
-        expression_attribute_values = {f":{k}": v for k, v in item.items()}
+        key = serialize_item(key)
+        new_values = serialize_item(new_values)
+        update_expression = "SET " + ", ".join(f"{k} = :{k}" for k in new_values.keys())
+        expression_attribute_values = {f":{k}": v for k, v in new_values.items()}
         response = self.dynamo_db.update_item(
             TableName=self.table,
             Key=key,
@@ -133,13 +133,46 @@ class ObjectDynamodb:
         return {"statusCode": 200,
                 "body": "updated"} 
 
+    def update_sort_key(self, key: dict, new_item: dict):
+        '''
+        Method used to update attributes of the table used as a sort key, by first deleting and then placing `new_item` in place of it.
+        :param dict `key`: The key of the item to update.
+        :param dict `new_item`: The new item to replace it with.
+        :return : Response 200 or Response 500 error.
+        '''
+        transact_items = [
+            {
+                'Delete': {
+                    'TableName': self.table,
+                    'Key': key
+                }
+            },
+            {
+                'Put': {
+                    'TableName': self.table,
+                    'Item': new_item
+                }
+            },
+        ]
+
+        response = self.dynamo_db.transact_write_items(
+            TransactItems=transact_items
+        )
+        return {"statusCode": 200,
+                "body": "updated"} 
+
     @error_handler
     def append_to_list(self, key: dict, list_name: str, item: dict):
         '''
-        Method used to update an item containing an attribute of List type by appending to that `item` to that list.
+        Method used to update an item specified by `key` by appending `item` to the list `list_name` attribute.
+
+        :param dict `key`: Key of the item to update.
+        :param str `list_name`: Name of the column containing the list to append to.
+        :param dict `item`: Item to append to that list.
+        :return : Response 200 or Response 500 error.
         '''
-        key = self._serialize_item(key)
-        item = self._serialize_item([item])
+        key = serialize_item(key)
+        item = serialize_item(item)
         response = self.dynamo_db.update_item(
             TableName=self.table,
             Key=key,
@@ -148,7 +181,7 @@ class ObjectDynamodb:
                 "#b": list_name,
             },
             ExpressionAttributeValues={
-                ":item": item,
+                ":item": {'L': [{'M': item}]},
             },
             ReturnValues="UPDATED_NEW"
         )

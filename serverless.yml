@@ -16,6 +16,7 @@ provider:
           Action:
             - "dynamodb:GetItem"
             - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
             - "dynamodb:DeleteItem"
             - "dynamodb:Scan"
           Resource:
@@ -33,17 +34,19 @@ provider:
 
         - Effect: Allow
           Action:
+            - "dynamodb:ConditionCheckItem"
             - "dynamodb:GetItem"
             - "dynamodb:PutItem"
             - "dynamodb:UpdateItem"
             - "dynamodb:DeleteItem"
             - "dynamodb:Scan"
+            - "dynamodb:Query"
           Resource:
             - { "Fn::GetAtt": ["IoTDevices", "Arn"] }
 
   environment: 
     CLIENTS_TABLE_NAME: ${self:provider.stage}WSClients
-    REMOTES_TABLE_NAME: ${self:provider.stage}IRRemotes
+    REMOTES_TABLE_NAME: ${self:provider.stage}Remotes
     IOT_DEVICES_TABLE_NAME: ${self:provider.stage}IoTDevices
     WSSAPIGATEWAYENDPOINT:
       Fn::Join:
@@ -107,7 +110,7 @@ resources:
           - AttributeName: remoteName
             KeyType: HASH
           - AttributeName: deviceID
-            KeyType: HASH
+            KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 2
           WriteCapacityUnits: 2
@@ -128,6 +131,8 @@ resources:
         KeySchema:
           - AttributeName: macAddress
             KeyType: HASH
+          # - AttributeName: connectionId
+          #   KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 2
           WriteCapacityUnits: 2
