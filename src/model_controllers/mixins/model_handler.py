@@ -1,6 +1,7 @@
+import boto3
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 from boto3.dynamodb.conditions import Attr, And, Key
-from ..utils.helpers import serialize_item, serialize_items, deserialize_item, deserialize_items, error_handler
+from ...utils.helpers import serialize_item, serialize_items, deserialize_item, deserialize_items, error_handler
 
 
 class ObjectDynamodb:
@@ -8,12 +9,12 @@ class ObjectDynamodb:
     Class used to abstract over certain DynamoDB operations. 
     A DynamoDB resource and a table are passed and the class provides methods to add, get, update items and more.
     '''
-    def __init__(self, dynamo_db, table: str):
+    def __init__(self, table: str):
         '''
         :param `dynamo_db`: boto3 DynamoDB resource
         :param str `table`: Name of the table to perform operations on.
         '''
-        self.dynamo_db = dynamo_db
+        self.dynamo_db = boto3.client('dynamodb')
         self.table = table
 
     

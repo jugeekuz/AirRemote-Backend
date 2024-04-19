@@ -1,51 +1,65 @@
 import os
 import json
-import boto3
-from .models.model_handler import ObjectDynamodb
 from .websockets.websockets_handler import WebSocket
-from .controllers.remotes_controller import Remote
+from .model_controllers.remotes_controller import RemoteController
+from .model_controllers.clients_controller import ClientsController
+from .model_controllers.devices_controller import DeviceController
+from .routes.remotes_routes import RemoteRouter
+from .routes.devices_routes import DeviceRouter
+from .utils.helpers import check_response, error_handler
 
-dynamo_db = boto3.client('dynamodb')
-api_gateway = boto3.client('apigatewaymanagementapi', endpoint_url=os.getenv("WSSAPIGATEWAYENDPOINT"))
+WSSAPIGATEWAYENDPOINT = os.getenv("WSSAPIGATEWAYENDPOINT")
+REMOTES_TABLE = os.getenv("REMOTES_TABLE_NAME", "")
+CLIENTS_TABLE = os.getenv("CLIENTS_TABLE_NAME", "")
+DEVICES_TABLE = os.getenv("IOT_DEVICES_TABLE_NAME", "")
 
+@error_handler
 def handle(event, context):
-    try:
-        connection_id = str(event["requestContext"]["connectionId"])
-        routeKey = str(event["requestContext"]["routeKey"])
+    connection_id = str(event["requestContext"]["connectionId"])
+    route_key = str(event["requestContext"]["routeKey"])
+    
+    #WebSocket Gateway
+    web_socket = WebSocket(WSSAPIGATEWAYENDPOINT, CLIENTS_TABLE, REMOTES_TABLE)
+
+    #Controllers
+    remote_controller = RemoteController(REMOTES_TABLE, web_socket)
+    clients_controller = ClientsController(CLIENTS_TABLE, web_socket)
+    device_controller = DeviceController(DEVICES_TABLE, web_socket)
+
+    #Routers
+    remote_router = RemoteRouter(remote_controller)
+    device_router = DeviceRouter(device_controller)
+    match(route_key):
+        case "$connect":
         
-        #DynamoDB Models
-        remote_model = ObjectDynamodb(dynamo_db, os.getenv("REMOTES_TABLE_NAME", ""))
-        clients_model = ObjectDynamodb(dynamo_db, os.getenv("CLIENTS_TABLE_NAME", ""))
-        devices_model = ObjectDynamodb(dynamo_db, os.getenv("IOT_DEVICES_TABLE_NAME", ""))
+            response = clients_controller.add_client({
+                "connectionId": connection_id,
+                "deviceType": None
+            })
 
-        #WebSocket Gateway
-        web_socket = WebSocket(api_gateway, clients_model, devices_model)
+            return response
+        
+        case "$disconnect":
 
-        #Controllers
-        remote_controller = Remote(remote_model, web_socket)
+            connection = {"connectionId": connection_id}
 
-        if routeKey == "$connect":
-            return web_socket.handle_connect(connection_id)
-        elif routeKey == "$disconnect":
-            return web_socket.handle_disconnect(connection_id)
-        else:
+            response_device = device_controller.remove_connection(connection)
+
+            return clients_controller.delete_client(connection)
+        
+        case "cmd":
             body = json.loads(event.get('body', ''))
-            if body["type"] == "cmd":
-                response = remote_controller.handle(body)
-                web_socket.send_message(connection_id, response)
 
-                return {"statusCode": 200,
-                        "body": "OK"}
-            
-            elif body["type"] == "confirm":
-                return web_socket.handle_device_type(connection_id, body)
-            
+            if body["type"] == "remote":
+                return remote_router.handle(body)
+            elif body["type"] == "device":
+                return device_router.handle(body)
             else:
                 raise NotImplementedError
             
-    except Exception as e:
-        return {
-            "statusCode": 400,
-            "body": f"Bad Request, received error: {e}"
-        }
+        case _:
+            return {
+                "statusCode": 400,
+                "body": f"Bad Request, route `{route_key}` does not exist."
+            }
 
