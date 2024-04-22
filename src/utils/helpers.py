@@ -42,7 +42,11 @@ def deserialize_items(dynamo_obj_list: list):
     return [deserialize_item(item) for item in dynamo_obj_list]
 
 def check_response(response: dict):
-
+    '''
+    Function used to check if the status code of the response is in 2xx form and if body isn't empty.
+    :param dict `response`: The response to check
+    :returns : True if response is in form 2xx and the body isn't empty, False otherwise.
+    '''
     status_code = str(response["statusCode"])
     if status_code.startswith('2') and response["body"]:
         return True

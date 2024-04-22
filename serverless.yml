@@ -60,7 +60,7 @@ provider:
 
 functions:
   websocketHandler:
-    handler: src/handler.handle
+    handler: src/ws_handler.handle
     events:
       - websocket:
           route: $connect
@@ -68,6 +68,23 @@ functions:
           route: $disconnect
       - websocket:
           route: msg
+
+  # httpHandler:
+  #   handler: src/http_handler.handle
+  #   events:
+  #     - httpApi:
+  #       path: /api/remote
+  #       method: GET
+  #     - httpApi:
+  #       path: /api/remote/{remote}
+  #       method: "*"
+  #     - httpApi:
+  #       path: /api/remote/{remote}/button
+  #       method: GET
+  #     - httpApi:
+  #       path: /api/remote/{remote}/button/{button}
+  #       method: "*"
+
 
 
 plugins:
