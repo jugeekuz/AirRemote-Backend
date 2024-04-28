@@ -7,7 +7,7 @@ provider:
   runtime: python3.12
   stage: ${opt:stage, 'dev'}
   region: eu-central-1
-  timeout: 900
+  timeout: 60
 
   iam:
     role:
@@ -46,7 +46,7 @@ provider:
 
   environment: 
     CLIENTS_TABLE_NAME: ${self:provider.stage}WSClients
-    REMOTES_TABLE_NAME: ${self:provider.stage}Remotes
+    REMOTES_TABLE_NAME: ${self:provider.stage}IRRemotes
     IOT_DEVICES_TABLE_NAME: ${self:provider.stage}IoTDevices
     WSSAPIGATEWAYENDPOINT:
       Fn::Join:
@@ -60,7 +60,7 @@ provider:
 
 functions:
   websocketHandler:
-    handler: src/ws_handler.handle
+    handler: src/websockets_router.handle
     events:
       - websocket:
           route: $connect
@@ -69,22 +69,25 @@ functions:
       - websocket:
           route: msg
 
-  # httpHandler:
-  #   handler: src/http_handler.handle
-  #   events:
-  #     - httpApi:
-  #       path: /api/remote
-  #       method: GET
-  #     - httpApi:
-  #       path: /api/remote/{remote}
-  #       method: "*"
-  #     - httpApi:
-  #       path: /api/remote/{remote}/button
-  #       method: GET
-  #     - httpApi:
-  #       path: /api/remote/{remote}/button/{button}
-  #       method: "*"
-
+  httpDataHandler:
+    handler: src/http_router.handle
+    events:
+      - httpApi:
+          path: /api/remotes
+          method: GET
+      - httpApi:
+          path: /api/remotes/{remoteName}
+          method: GET
+      - httpApi:
+          path: /api/devices
+          method: GET
+      - httpApi:
+          path: /api/devices/{macAddress}
+          method: GET
+      - httpApi:
+          path: /api/devices/connected
+          method: GET
+  
 
 
 plugins:
@@ -99,8 +102,6 @@ resources:
         AttributeDefinitions:
           - AttributeName: connectionId
             AttributeType: S
-        # - AttributeName: deviceType
-        #   AttributeType: S
         KeySchema:
           - AttributeName: connectionId
             KeyType: HASH
@@ -115,19 +116,9 @@ resources:
         AttributeDefinitions:
           - AttributeName: remoteName
             AttributeType: S
-          - AttributeName: deviceID
-            AttributeType: S
-          # - AttributeName: protocol
-          #   AttributeType: S
-          # - AttributeName: commandSize
-          #   AttributeType: S
-          # - AttributeName: buttons
-          #   AttributeType: L
         KeySchema:
           - AttributeName: remoteName
             KeyType: HASH
-          - AttributeName: deviceID
-            KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 2
           WriteCapacityUnits: 2
@@ -139,17 +130,9 @@ resources:
         AttributeDefinitions:
           - AttributeName: macAddress
             AttributeType: S
-          # - AttributeName: deviceName
-          #   AttributeType: S
-          # - AttributeName: deviceType
-          #   AttributeType: S
-          # - AttributeName: connectionId
-          #   AttributeType: S
         KeySchema:
           - AttributeName: macAddress
             KeyType: HASH
-          # - AttributeName: connectionId
-          #   KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 2
           WriteCapacityUnits: 2

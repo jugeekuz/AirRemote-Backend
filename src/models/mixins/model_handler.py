@@ -17,20 +17,6 @@ class ObjectDynamodb:
         self.dynamo_db = boto3.client('dynamodb')
         self.table = table
 
-    
-    @error_handler
-    def get_items(self):
-        '''
-        Method used to get all items of `self.table`.
-
-        :return : Response 200 with items in `body` or Response 500 error.
-        '''
-        response = self.dynamo_db.scan(
-            TableName=self.table
-        )
-        result = deserialize_items(response["Items"])
-        return {"statusCode": 200,
-                "body": result}
 
     @error_handler
     def get_item(self, key: dict):
@@ -45,9 +31,9 @@ class ObjectDynamodb:
             TableName=self.table,
             Key=key
         )            
-        if not response["Item"]:
+        if not "Item" in response or not response["Item"]:
             return {"statusCode": 404,
-                    "body": {}}
+                    "body": []}
         
         return {"statusCode": 200,
                 "body": deserialize_item(response["Item"])}

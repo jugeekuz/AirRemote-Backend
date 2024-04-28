@@ -41,5 +41,4 @@ def handle(event, context):
             return {
                 "statusCode": 400,
                 "body": f"Bad Request, route `{route_key}` does not exist."
-            }
-
+            } 
