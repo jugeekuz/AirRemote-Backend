@@ -1,9 +1,9 @@
 import os
 import json
 from .websockets.websockets_handler import WebSocket
-from .models.clients_model import ClientsModel
-from .models.devices_model import DevicesModel
-from .models.remotes_model import RemotesModel
+from .model_controllers.clients_controller import ClientsModelController
+from .model_controllers.devices_controller import DevicesModelController
+from .model_controllers.remotes_controller import RemotesModelController
 from .utils.helpers import error_handler
 
 WSSAPIGATEWAYENDPOINT = os.getenv("WSSAPIGATEWAYENDPOINT")
@@ -19,23 +19,23 @@ def handle(event, context):
     query_params = event.get('queryStringParameters', '')
     body = event.get('body', '')
 
-    clients_model = ClientsModel(CLIENTS_TABLE)
-    devices_model = DevicesModel(DEVICES_TABLE)
-    remotes_model = RemotesModel(REMOTES_TABLE)
+    clients_controller = ClientsModelController(CLIENTS_TABLE)
+    devices_controller = DevicesModelController(DEVICES_TABLE)
+    remotes_controller = RemotesModelController(REMOTES_TABLE)
 
     connection = {"connectionId": connection_id}
 
     match(route_key):
         case "$connect":
-            response_devices = devices_model.set_device_status(connection, query_params)
-            return clients_model.add_client(connection, query_params)
+            response_devices = devices_controller.set_device_status(connection, query_params)
+            return clients_controller.add_client(connection, query_params)
             
         case "$disconnect":
-            response_devices = devices_model.remove_connection(connection)
-            return clients_model.delete_client(connection)
+            response_devices = devices_controller.remove_connection(connection)
+            return clients_controller.delete_client(connection)
         
         case "msg":
-            return remotes_model.add_button(body)
+            return remotes_controller.add_button(body)
             
         case _:
             return {

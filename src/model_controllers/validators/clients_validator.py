@@ -1,5 +1,5 @@
 import re
-from ..mixins.validators import BaseValidator
+from .mixins.validators import BaseValidator
 
 class ClientsValidator(BaseValidator):
 
@@ -26,7 +26,7 @@ class ClientsValidator(BaseValidator):
 
         return (device in allowed_types)
     
-    def validate(self, items: dict):
+    def validate(self, items: dict, params: list=None):
         '''
         Method used to validate types and values of items.
         :param dict `items`: Dictionary containing keys as attribute names and values to be checked.
@@ -35,5 +35,5 @@ class ClientsValidator(BaseValidator):
             'connectionId': self.check_connection_id, 
             'deviceType': self.check_device_type
         }
-        super().validate(check_attributes, items)
+        super().validate(check_attributes, items, params=params)
             

@@ -1,9 +1,9 @@
 import re
-from .mixins.model_handler import ObjectDynamodb
+from .mixins.model_mixin import ObjectDynamodb
 from .validators.clients_validator import ClientsValidator
 from ..utils.helpers import error_handler
             
-class ClientsModel(ObjectDynamodb):
+class ClientsModelController(ObjectDynamodb):
     '''
     Class used to handle clients.
     This class provides capability to store, retrieve, update and delete clients from AWS DynamoDB.
@@ -18,7 +18,7 @@ class ClientsModel(ObjectDynamodb):
     @error_handler
     def get_client(self, client: dict):
 
-        self.validator.validate(client)
+        self.validator.validate(client, params=['connectionId'])
 
         return self.get_item(client)
     
@@ -27,21 +27,21 @@ class ClientsModel(ObjectDynamodb):
 
         client["deviceType"] = query_params["deviceType"]
 
-        self.validator.validate(client)
+        self.validator.validate(client, params=['connectionId', 'deviceType'])
 
         return self.add_item(client)
     
     @error_handler
     def delete_client(self, client: dict):
 
-        self.validator.validate(client)
+        self.validator.validate(client, params=['connectionId'])
 
         return self.delete_item(client)
     
     @error_handler
     def set_device_type(self, client: dict, device_type: dict):
 
-        self.validator.validate({**client, **device_type})
+        self.validator.validate({**client, **device_type}, params=['connectionId', 'deviceType'])
 
         return self.update_item(client, device_type)
     

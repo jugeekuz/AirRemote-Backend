@@ -1,8 +1,10 @@
 import re
-from ..mixins.validators import BaseValidator
+from .mixins.validators import BaseValidator
 class RemotesValidator(BaseValidator):
-    def check_mac_address(self, mac: str):
-
+    def check_mac(self, mac: str):
+        '''
+        Method that checks if given argument is str and valid MAC address
+        '''
         if not isinstance(mac, str):
             return False
         
@@ -11,6 +13,9 @@ class RemotesValidator(BaseValidator):
         return re.match(pattern, mac)
     
     def check_remote_name(self, remote_name: str):
+        '''
+        Method that checks if given argument is str and valid remote name
+        '''
         if not isinstance(remote_name, str):
             return False
         pattern = '^[a-zA-Z0-9- ]+$'
@@ -18,6 +23,9 @@ class RemotesValidator(BaseValidator):
         return re.match(pattern, remote_name)
 
     def check_command_size(self, command_size: str):
+        '''
+        Method that checks if given argument is str and valid supported command size
+        '''
         if not isinstance(command_size, str):
             return False
 
@@ -26,6 +34,9 @@ class RemotesValidator(BaseValidator):
         return (command_size in allowed_sizes)
 
     def check_protocol(self, protocol_name: str):
+        '''
+        Method that checks if given argument is str and valid and supported protocol name
+        '''
         if not isinstance(protocol_name, str):
             return False
 
@@ -33,10 +44,10 @@ class RemotesValidator(BaseValidator):
 
         return (protocol_name in allowed_sizes)
     
-    def check_buttons(self, buttons: list):
-        return isinstance(buttons, list)
-    
     def check_button_name(self, button_name: str):
+        '''
+        Method that checks if given argument is str and valid button name
+        '''
         if not isinstance(button_name, str):
             return False
         
@@ -45,6 +56,9 @@ class RemotesValidator(BaseValidator):
         return re.match(pattern, button_name)
     
     def check_button_code(self, button_code: str, command_size: str):
+        '''
+        Method that checks if given argument button code is valid hex code and of bit length command size
+        '''
         if not self.check_command_size(command_size):
             return False
         
@@ -60,5 +74,22 @@ class RemotesValidator(BaseValidator):
         pattern = r'^[0-9A-Fa-f]+$'
 
         return re.match(pattern, button_code)
+
+
+    def check_buttons(self, buttons: list):
+        
+        if not isinstance(buttons, list):
+            return False
+        
+        return True
     
-    def validate(self, items: dict):
+    
+    def validate(self, items: dict, params: list):
+        check_attributes = {
+            'remoteName': self.check_remote_name,
+            'protocol': self.check_protocol,
+            'macAddress': self.check_mac,
+            'commandSize': self.check_command_size,
+            'buttons': self.check_buttons
+        }
+        super().validate(check_attributes, params, items)

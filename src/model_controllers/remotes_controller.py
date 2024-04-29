@@ -1,9 +1,9 @@
 import re
-from .mixins.model_handler import ObjectDynamodb
-from .mixins.validators import ValidationError, BaseValidator
+from .mixins.model_mixin import ObjectDynamodb
+from .validators.remotes_validator import RemotesValidator
 from ..utils.helpers import error_handler
 
-class RemotesModel(ObjectDynamodb):
+class RemotesModelController(ObjectDynamodb):
     '''
     Class used to handle remote control commands.
     This class provides capability to store, retrieve, update and delete remotes from AWS DynamoDB.
@@ -12,32 +12,31 @@ class RemotesModel(ObjectDynamodb):
         self.validator = RemotesValidator()
         super().__init__(remote_table)
         
-    def get_remotes(self):
-        '''
-        Method used to list all saved remotes.
-        :param bool `send`: Boolean signifying to send the response back to the connected device or not.
-        :returns: Response 200 containing remotes in body or Response 500 error.
-        '''
-        
-        return self.scan_items()
-
+ 
     @error_handler
-    def get_remote(self, remote: dict):
+    def get_remotes(self, remote: dict = None):
         '''
-        Method used to get a remote by its' key.
+        Method used to get a remote by its' key or all remotes if None.
         :param dict `remote`: Dictionary containing remote.
-        :param bool `send`: Boolean signifying to send the response back to the connected device or not.
         :returns: Response 200 containing remotes in body or Response 500 error.
         '''
+        if remote:
+            
+            self.validator.validate(remote, params=['remoteName'])
 
-        self.validator.validate(remote)
+            return self.get_item(remote)
+        else:
 
-        return self.get_item(remote)
+            return self.scan_items()
 
     @error_handler
     def add_remote(self, remote: dict):
 
-        self.validator.validate(remote)
+        self.validator.validate(remote, params=['remoteName', 
+                                                'macAddress', 
+                                                'commandSize',
+                                                'protocol',
+                                                'buttons'])
         
         return self.add_item(remote)
 
@@ -45,17 +44,20 @@ class RemotesModel(ObjectDynamodb):
     def add_button(self, body: dict):
         
         remote = {"remoteName": body["remoteName"]}
-        self.validator.validate(remote)
+
+        self.validator.validate(remote, params=['remoteName'])
 
         button = {"buttonName": body["buttonName"],
                   "buttonCode": body["buttonCode"]}
-        self.validator.validate(button)
+        
+        self.validator.validate(button, params=['buttonName', 
+                                                'buttonCode'])
 
         return self.append_to_list(remote, "buttons", button)
     
     @error_handler
     def delete_remote(self, remote: dict):
         
-        self.validator.validate(remote)
+        self.validator.validate(remote, params=['remoteName'])
 
         return self.delete_item(remote)
