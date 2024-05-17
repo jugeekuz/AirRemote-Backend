@@ -1,7 +1,5 @@
 import boto3
-from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
-from boto3.dynamodb.conditions import Attr, And, Key
-from ...utils.helpers import serialize_item, serialize_items, deserialize_item, deserialize_items, error_handler
+from ...utils.helpers import serialize_item, serialize_items, deserialize_item, deserialize_items, error_handler, check_response, serialize_list, deserialize_list
 
 
 class ObjectDynamodb:
@@ -174,3 +172,47 @@ class ObjectDynamodb:
         )
         return {"statusCode": 200,
                 "body": "updated"} 
+    
+    @error_handler
+    def delete_from_list(self, key: dict, list_name: str, item: dict):
+        '''
+        Method used to delete an object from a list of objects, if `item` exists within that object.
+
+        :param dict `key`: Key of the item to update.
+        :param str `list_name`: Name of the column containing the list to delete from.
+        :param dict `item`: Item to delete from `list_name`.
+        :return : Response 200 or Response 500 error.
+        '''
+        key = serialize_item(key)
+        
+        response = self.dynamo_db.get_item(
+            TableName=self.table,
+            Key=key
+        )            
+        if not "Item" in response or not response["Item"]:
+            return {"statusCode": 404,
+                    "body": []}
+        
+        
+        obj_list = deserialize_list(response['Item'][list_name])
+
+        is_subset = lambda subset, superset: all(subset_key in superset and superset[subset_key] == subset_value for subset_key, subset_value in subset.items())
+
+        new_obj_list = serialize_list([obj for obj in obj_list if not is_subset(item, obj)])
+        
+        response = self.dynamo_db.update_item(
+            TableName=self.table,
+            Key=key,
+            UpdateExpression='SET #lst = :val',
+            ExpressionAttributeNames={
+                "#lst": list_name,
+            },
+            ExpressionAttributeValues={
+                ':val': new_obj_list
+            }
+        )
+        print(list_name)
+        print(new_obj_list)
+        print(response)
+        return {"statusCode": 200,
+                "body": "deleted"}

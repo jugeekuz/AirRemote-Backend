@@ -1,5 +1,5 @@
 import re
-from .mixins.validators import BaseValidator
+from .mixins import BaseValidator
 
 class ClientsValidator(BaseValidator):
 

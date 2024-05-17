@@ -1,10 +1,13 @@
-from .mixins.model_mixin import ObjectDynamodb
-from .validators.devices_validator import DevicesValidator
+from .mixins import ObjectDynamodb
+from .validators import DevicesValidator
 from ..utils.helpers import error_handler, check_response
+from ..utils.errors import ResponseError
 
-class DevicesModelController(ObjectDynamodb):
+class DevicesModel(ObjectDynamodb):
     def __init__(self, devices_table: str):
+
         self.validator = DevicesValidator()
+
         super().__init__(devices_table)
 
     def get_devices(self, device: dict = None):
@@ -21,19 +24,36 @@ class DevicesModelController(ObjectDynamodb):
             return self.scan_items()
 
     
+    def add_device(self, device: dict):
+
+        self.validator.validate(device, params=['macAddress', 
+                                                'connectionId',
+                                                'deviceName'])
+        
+        return self.add_item(device)
+
+    def delete_device(self, device: dict):
+        
+        self.validator.validate(device, params=['macAddress'])
+
+        return self.delete_item(device)
+
     @error_handler
     def get_connected_devices(self):
         '''
         Method that scans all devices and returns an array of devices that have connection id.
         '''
         response = self.scan_items()
-        if check_response(response):
-            new_list = []
-            for device in response["body"]:
-                if device["connectionId"]:
-                    new_list.append(device)
 
-            response["body"] = new_list
+        if not check_response(response):
+            raise ResponseError(f"Unexpected response error when using `scan_items`, received status code {response['statusCode']} and body {response['body']}.")
+
+        new_list = []
+        for device in response["body"]:
+            if device["connectionId"]:
+                new_list.append(device)
+
+        response["body"] = new_list
             
         return response
 
@@ -44,19 +64,19 @@ class DevicesModelController(ObjectDynamodb):
         :param dict `connection`: Dictionary containing key `connectionId` and value the connection_id.
         :returns : Response 200 or Error
         '''
-        response_device = self.scan_items(connection)
+        response = self.scan_items(connection)
         
-        if check_response(response_device):
-            device = response_device["body"][0]
-            mac_address = {
-                "macAddress": device["macAddress"]
-            }
-
-            self.validator.validate(mac_address, params=['macAddress'])
-
-            response_device = self.update_item(mac_address, {"connectionId": None})
+        if not check_response(response):
+            raise ResponseError(f"Unexpected response error when using `scan_items`, received status code {response['statusCode']} and body {response['body']}.")
         
-        return response_device
+        device = response["body"][0]
+        mac_address = {
+            "macAddress": device["macAddress"]
+        }
+
+        self.validator.validate(mac_address, params=['macAddress'])
+
+        return self.update_item(mac_address, {"connectionId": None})
 
     @error_handler
     def set_device_name(self, mac_address: dict, device_name: dict):

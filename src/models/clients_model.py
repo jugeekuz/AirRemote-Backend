@@ -1,16 +1,18 @@
 import re
-from .mixins.model_mixin import ObjectDynamodb
-from .validators.clients_validator import ClientsValidator
+from .mixins import ObjectDynamodb
+from .validators import ClientsValidator
 from ..utils.helpers import error_handler
             
-class ClientsModelController(ObjectDynamodb):
+class ClientsModel(ObjectDynamodb):
     '''
     Class used to handle clients.
     This class provides capability to store, retrieve, update and delete clients from AWS DynamoDB.
     '''
-    def __init__(self, remote_table: str):
+    def __init__(self, clients_table: str):
+
         self.validator = ClientsValidator()
-        super().__init__(remote_table)
+
+        super().__init__(clients_table)
         
     def get_clients(self):
         return self.scan_items()

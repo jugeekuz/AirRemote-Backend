@@ -1,5 +1,7 @@
 import re
-from .mixins.validators import BaseValidator
+from typing import Tuple
+from .mixins import BaseValidator
+
 class RemotesValidator(BaseValidator):
     def check_mac(self, mac: str):
         '''
@@ -55,34 +57,26 @@ class RemotesValidator(BaseValidator):
 
         return re.match(pattern, button_name)
     
-    def check_button_code(self, button_code: str, command_size: str):
+    def check_button_code(self, button_size_tuple: Tuple[str, str]):
         '''
         Method that checks if given argument button code is valid hex code and of bit length command size
         '''
-        if not self.check_command_size(command_size):
-            return False
+        (button_code, command_size) = button_size_tuple
         
         if not isinstance(button_code, str):
             return False
         
         if button_code[0:2] != '0x':
             return False
-
-        if int(button_code, 16).bit_length() == int(command_size):
-            return False
         
         pattern = r'^[0-9A-Fa-f]+$'
 
-        return re.match(pattern, button_code)
-
-
-    def check_buttons(self, buttons: list):
-        
-        if not isinstance(buttons, list):
+        if not re.match(pattern, button_code[2:]):
             return False
-        
-        return True
-    
+
+        return (int(button_code, 16).bit_length() == int(command_size))
+
+
     
     def validate(self, items: dict, params: list):
         check_attributes = {
@@ -90,6 +84,8 @@ class RemotesValidator(BaseValidator):
             'protocol': self.check_protocol,
             'macAddress': self.check_mac,
             'commandSize': self.check_command_size,
-            'buttons': self.check_buttons
+            'buttons': self.check_buttons,
+            'buttonName': self.check_button_name,
+            'buttonCode': self.check_button_code
         }
-        super().validate(check_attributes, params, items)
+        super().validate(check_attributes, items, params=params)

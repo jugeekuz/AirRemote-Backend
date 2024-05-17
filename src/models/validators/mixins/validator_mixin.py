@@ -16,7 +16,7 @@ class BaseValidator:
         :param list `params`: List containing attributes that should exist in `items`, `None` if items can have different attributes.
         '''
         if params :
-            if not all(attr in items for attr in params) or not len(params)!=len(items):
+            if len(params)!=len(items) or not all(attr in items for attr in params):
                 raise AttributeError(f"Expected attributes `{params}`, received `{list(items.keys())}`.")
            
         for key, value in items.items():

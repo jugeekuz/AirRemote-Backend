@@ -1,5 +1,4 @@
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
-
 def serialize_item(dict: dict):
     '''
     Function used to serialize data in appropriate format for DynamoDB.
@@ -40,6 +39,27 @@ def deserialize_items(dynamo_obj_list: list):
     :return : List of items in python dict format.
     '''
     return [deserialize_item(item) for item in dynamo_obj_list]
+
+def deserialize_list(dynamo_obj_list: list):
+    '''
+    Temporary fuction to deserialize buttons list
+    '''
+    dynamo_obj_list = dynamo_obj_list['L']
+    new_list = []
+    for obj in dynamo_obj_list:
+        obj = obj['M']
+        obj = deserialize_item(obj)
+        new_list.append(obj)
+    return new_list
+
+def serialize_list(dynamo_obj_list: list):
+    '''
+    Temporary fuction to serialize buttons list
+    '''
+    res = {'L': []}
+    for button in dynamo_obj_list:
+        res['L'].append({'M': serialize_item(button)})
+    return res
 
 def check_response(response: dict):
     '''

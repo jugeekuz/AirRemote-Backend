@@ -44,10 +44,23 @@ provider:
           Resource:
             - { "Fn::GetAtt": ["IoTDevices", "Arn"] }
 
+        - Effect: Allow
+          Action:
+            - "dynamodb:ConditionCheckItem"
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
+            - "dynamodb:DeleteItem"
+            - "dynamodb:Scan"
+            - "dynamodb:Query"
+          Resource:
+            - { "Fn::GetAtt": ["RequestPool", "Arn"] }
+
   environment: 
     CLIENTS_TABLE_NAME: ${self:provider.stage}WSClients
     REMOTES_TABLE_NAME: ${self:provider.stage}IRRemotes
     IOT_DEVICES_TABLE_NAME: ${self:provider.stage}IoTDevices
+    REQUEST_POOL_TABLE_NAME: ${self:provider.stage}RequestPool
     WSSAPIGATEWAYENDPOINT:
       Fn::Join:
         - ""
@@ -67,7 +80,11 @@ functions:
       - websocket:
           route: $disconnect
       - websocket:
-          route: msg
+          route: cmd
+      - websocket:
+          route: ack
+      - websocket:
+          route: error
 
   httpDataHandler:
     handler: src/http_router.handle
@@ -76,14 +93,38 @@ functions:
           path: /api/remotes
           method: GET
       - httpApi:
+          path: /api/remotes
+          method: POST
+
+      - httpApi:
           path: /api/remotes/{remoteName}
           method: GET
+      - httpApi:
+          path: /api/remotes/{remoteName}
+          method: DELETE
+
+      - httpApi:
+          path: /api/remotes/{remoteName}/buttons
+          method: POST      
+      - httpApi:
+          path: /api/remotes/{remoteName}/buttons/{buttonName}
+          method: DELETE
+
       - httpApi:
           path: /api/devices
           method: GET
       - httpApi:
+          path: /api/devices
+          method: POST
+      - httpApi:
           path: /api/devices/{macAddress}
           method: GET
+      - httpApi:
+          path: /api/devices/{macAddress}
+          method: PUT
+      - httpApi:
+          path: /api/devices/{macAddress}
+          method: DELETE
       - httpApi:
           path: /api/devices/connected
           method: GET
@@ -136,3 +177,17 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 2
           WriteCapacityUnits: 2
+
+    RequestPool:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.REQUEST_POOL_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: requestId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: requestId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
