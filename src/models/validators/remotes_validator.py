@@ -76,8 +76,19 @@ class RemotesValidator(BaseValidator):
 
         return (int(button_code, 16).bit_length() == int(command_size))
 
-
-    
+    def check_buttons(self, buttons: list):
+        '''
+        Method that checks if list of buttons is valid.
+        '''
+        if not isinstance(buttons, list):
+            return False
+        try:
+            for btn in buttons:
+                self.validate(btn, ['buttonName', 'buttonCode'])
+        except:
+            return False
+        
+        return True
     def validate(self, items: dict, params: list):
         check_attributes = {
             'remoteName': self.check_remote_name,

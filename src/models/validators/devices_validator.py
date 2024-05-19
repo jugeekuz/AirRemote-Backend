@@ -15,18 +15,18 @@ class DevicesValidator(BaseValidator):
     
     def check_connection_id(self, key: str):
         '''
-        Checks if `key` is in valid format by being `str` and in Base64 format (can be None).
+        Checks if `key` is in valid format by being `str` and in Base64 format.
         '''
-        if key is None:
-            return True
-        
         if not isinstance(key, str):
             return False
 
         if len(key)%4 != 0:
             return False
         
-        return re.match(r'^[A-Za-z0-9+/]+={0,2}$', key)
+        if not re.match(r'^[A-Za-z0-9+/\-]+={0,2}$', key):
+            return False
+        
+        return True
     
 
     def check_device_type(self, item: str):

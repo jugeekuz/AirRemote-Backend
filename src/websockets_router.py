@@ -16,7 +16,7 @@ def connect(connection: dict, query_parameters: dict):
     Function handling new websocket connection by saving new clients and the device if it is a device
     '''
 
-    if query_parameters['deviceType'] == 'iot':
+    if query_parameters.get('deviceType') == 'iot':
         response_devices = devices_model.set_device_status(connection, query_parameters)
         if not check_response(response_devices):
             return response_devices
@@ -36,21 +36,15 @@ def disconnect(connection: dict):
 def handle(event, context):
     connection_id = str(event["requestContext"]["connectionId"])
     route_key = str(event["requestContext"]["routeKey"])
-    query_params = event.get('queryStringParameters', '')
-    print("here")
+    query_params = event.get('queryStringParameters', {})
+    
     body = event.get('body', '')
     body = json.loads(body) if body else ''
-    print("here2")
-
     connection = {"connectionId": connection_id}
 
     cmd_controller = CMDController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model, remotes_model, devices_model)
-    print("1")
-    ack_controller = ACKController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model)
-    print("2")
+    ack_controller = ACKController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model, remotes_model)
     error_controller = ErrorController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model)
-
-    print(route_key)
 
     websocket_router = {
         '$connect': lambda: connect(connection, query_params),

@@ -119,11 +119,12 @@ class DevicesModel(ObjectDynamodb):
             mac_address = {
                 "macAddress": query_params["macAddress"]
                 }
+            
+            self.validator.validate({**mac_address, **connection}, params=['macAddress','connectionId'])
+            
             #If the device is already registered then update its' connection id
             if check_response(self.get_item(mac_address)):
-
-                self.validator.validate({**mac_address, **connection}, params=['macAddress','connectionId'])
-
+                
                 response = self.update_item(mac_address, connection)
 
             else:

@@ -1,7 +1,7 @@
 import json
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timedelta
 from .mixins import ObjectDynamodb
 from .validators import RequestPoolValidator
 from ..utils.helpers import check_response, error_handler
@@ -56,7 +56,7 @@ class RequestPoolModel(ObjectDynamodb):
 
         self.validator.validate(request, ['requestId'])
 
-        return self.delete_item(self, request)
+        return self.delete_item(request)
     
     @error_handler
     def clean_expired_requests(self):
@@ -67,14 +67,15 @@ class RequestPoolModel(ObjectDynamodb):
 
         if not check_response(requests_response):
             return requests_response
-        
+
         for request in requests_response["body"]:
-            request_time = datetime.isoformat(request['timestamp'])
-            if request_time - datetime.now() > 40:
+            request_time = datetime.fromisoformat(request['timestamp'])
+            if datetime.now() - request_time > timedelta(seconds=40):
                 expired_requests.append(request)
 
+
         for request in expired_requests:
-            self.delete_request({"requestId": request['requestId']})
+            delete_response = self.delete_request({"requestId": request['requestId']})
 
         return {"statusCode": 200,
                 "body": "Successfully cleaned requests."}

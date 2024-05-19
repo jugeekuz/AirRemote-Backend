@@ -81,5 +81,35 @@ def error_handler(func):
             return func(*args, **kwargs)
         except Exception as e:
             return {"statusCode": 500,
-                    "body": f"Received unexpected error in `{func.__name__}` : {e}"}
+                    "body": f"Received unexpected error in `{func.__name__}` : {str(e)}"}
     return wrapper
+
+
+def button_read(self, request: dict):
+    '''
+    Method that receives request to read a button, saves that request to RequestPoolModel and forwards that request to a given device.
+    :param dict request: Message containing the request sent from the frontend
+    :return : Response of the attempt to send the message to the websocket connection. 
+    '''
+    try:
+        self.validator.validate_button_execute(request)
+    except Exception as e:
+        error_message = {
+            "action": "error",
+            "body": f"{str(e)}"
+        }
+        self.send_message(error_message)
+
+    remote_res = self.remotes_model.get_remotes({'remoteName': request['remoteName']})
+    self.request_pool_model.clean_expired_requests()
+    requestpool_res = self.request_pool_model.add_request(self.connection_id, request)
+
+    iot_command = {
+        'action': 'cmd',
+        'cmd': 'read',
+        'protocol': remote_res['body']['protocol'],
+        'commandSize': remote_res['body']['commandSize'],
+        'requestId': requestpool_res['body']['requestId']
+    }
+
+    return self._send_message_device({'macAddress': remote_res['body']['macAddress']}, iot_command)

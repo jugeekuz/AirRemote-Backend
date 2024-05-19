@@ -13,7 +13,10 @@ class ClientsValidator(BaseValidator):
         if len(key)%4 != 0:
             return False
         
-        return re.match(r'^[A-Za-z0-9+/]+={0,2}$', key)
+        if not re.match(r'^[A-Za-z0-9+/\-]+={0,2}$', key):
+            return False
+        
+        return True
     
     def check_device_type(self, device: str):
         '''
@@ -22,7 +25,7 @@ class ClientsValidator(BaseValidator):
         if not isinstance(device, str):
             return False
 
-        allowed_types = ['iot', None]
+        allowed_types = ['iot', 'client', None]
 
         return (device in allowed_types)
     

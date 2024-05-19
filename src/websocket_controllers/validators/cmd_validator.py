@@ -119,36 +119,68 @@ Allowed Websocket Requests:
 
 
 '''
-from ...utils.helpers import check_response
+import re
+from ...models import DevicesModel, RemotesModel
 from ...utils.errors import InvalidRequestError
 from .mixins.validator_mixin import BaseRequestValidator
 class CMDValidator(BaseRequestValidator):
-    def __init__(self):
+    def __init__(self, remotes_model: RemotesModel, devices_model: DevicesModel):
+        self.remotes_model = remotes_model
+        self.devices_model = devices_model
         super().__init__()
 
-    def check_button_read(self, request: dict, remote_response: dict, button_name: str):
+    def validate_button_read(self, request: dict):
 
         allowed_attributes = ["action", "cmd", "remoteName", "buttonName"]
 
         self.check_request(request, allowed_attributes)
 
+        pattern = '^[a-zA-Z0-9- ]+$'
+
+        if not re.match(pattern, request['buttonName']):
+            raise InvalidRequestError('Button Name is invalid.')
+
+        remote_response = self.remotes_model.get_remotes({"remoteName": request["remoteName"]})
+
         if remote_response['statusCode']==404 or remote_response['statusCode']==500:
-            raise InvalidRequestError("Remote requested does not exist.")
+            raise InvalidRequestError('Remote requested does not exist.')
         
         for btn in remote_response['body']['buttons']:
-            if button_name == btn['buttonName']:
-                raise InvalidRequestError('')
+            if request['buttonName'] == btn['buttonName']:
+                raise InvalidRequestError('Button with that name already exists.')
 
+        devices_response = self.devices_model.get_devices({"macAddress": remote_response['body']['macAddress']})
+
+        if devices_response["statusCode"] == 404 or devices_response["statusCode"] == 500:
+            raise InvalidRequestError('Device does not exist.')
+        
+        if devices_response["statusCode"] == 200 and devices_response["body"]["connectionId"] is None:
+            raise InvalidRequestError('Device is not connected.')
         
         
-    def check_button_execute(self, request: dict):
+    def validate_button_execute(self, request: dict):
+
         allowed_attributes = ["action", "cmd", "remoteName", "buttonName"]
 
-        if not (all(isinstance(attr, str) for attr in request) \
-                and all(attr in allowed_attributes for attr in request) \
-                and (len(allowed_attributes) == len(request))):
-            raise InvalidRequestError
-        
-    
-    def validate(self, request: dict):
+        self.check_request(request, allowed_attributes)
 
+        remote_response = self.remotes_model.get_remotes({"remoteName": request["remoteName"]})
+
+        if remote_response['statusCode']==404 or remote_response['statusCode']==500:
+            raise InvalidRequestError('Remote requested does not exist.')
+        
+        button_exists = False
+        for btn in remote_response['body']['buttons']:
+            if request['buttonName'] == btn['buttonName']:
+                button_exists = True
+
+        if not button_exists:
+            raise InvalidRequestError('Button requested does not exist.')
+
+        devices_response = self.devices_model.get_devices({"macAddress": remote_response['body']['macAddress']})
+        if devices_response["statusCode"] == 404 or devices_response["statusCode"] == 500:
+            raise InvalidRequestError('Device does not exist.')
+        
+        if devices_response["statusCode"] == 200 and devices_response["body"]["connectionId"] is None:
+            raise InvalidRequestError('Device is not connected.')
+    

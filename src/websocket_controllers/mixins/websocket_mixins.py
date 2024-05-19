@@ -2,6 +2,7 @@ import json
 import boto3
 from ...utils.helpers import error_handler, check_response
 from ...models import DevicesModel
+import functools
 
 class WebSocketMixin:
     '''
@@ -50,6 +51,24 @@ class WebSocketMixin:
 
         return {"statusCode": 200,
                 "body": "OK"}
+    
+    @staticmethod
+    def notify_if_error(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)
+            except Exception as e:
+                error_message = {
+                    "action": "error",
+                    "body": f"{str(e)}"
+                }
+                self.send_message(error_message)
+                
+                return {"statusCode": 500,
+                        "body": f"Received unexpected error in `{func.__name__}` : {e}"}
+        return wrapper
+    
     
     
 class WebSocketMixinV2(WebSocketMixin):

@@ -21,15 +21,20 @@ class RequestPoolValidator(BaseValidator):
         
         return True
     
-    def check_connection_id(self, connection_id: str):
+    def check_connection_id(self, key: str):
+        '''
+        Checks if `key` is in valid format by being `str` and in Base64 format.
+        '''
+        if not isinstance(key, str):
+            return False
 
-        if not isinstance(connection_id, str):
+        if len(key)%4 != 0:
             return False
         
-        if len(connection_id)%4 != 0:
+        if not re.match(r'^[A-Za-z0-9+/\-]+={0,2}$', key):
             return False
         
-        return re.match(r'^[A-Za-z0-9+/]+={0,2}$', connection_id)
+        return True
 
     def check_request(self, body: str):
 
