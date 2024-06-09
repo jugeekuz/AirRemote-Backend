@@ -24,19 +24,19 @@ class ErrorController(WebSocketMixin):
         '''
         self.validator.validate_error_message(message)
         
-        request_response = self.request_pool_model.get_requests({'requestId': message['requestId']})
+        requestpool_response = self.request_pool_model.get_requests({'requestId': message['requestId']})
 
-        request = json.loads(request_response['body'])
+        # request = json.loads(request_response['body']['requestBody'])
 
-        request_response = self.request_pool_model.delete_request({'requestId': request['requestId']})
+        deletereq_response = self.request_pool_model.delete_request({'requestId': message['requestId']})
 
-        ack_message = {
+        error_message = {
             'action': 'error',
-            'requestId': request['requestId'],
+            'requestId': message['requestId'],
             'body': message['body']
         }
 
-        return self.send_message(ack_message, request['connectionId'])
+        return self.send_message(error_message, requestpool_response['body']['connectionId'])
     
     @WebSocketMixin.notify_if_error
     def route(self, request: dict):

@@ -1,4 +1,5 @@
 import json
+import ast
 import re
 from ...models import RequestPoolModel, RemotesModel
 from .mixins.validator_mixin import BaseRequestValidator
@@ -12,7 +13,7 @@ class ACKValidator(BaseRequestValidator):
 
     def validate_ack_read(self, request: dict):
 
-        allowed_attributes = ["action", "requestId", "buttonCode"]
+        allowed_attributes = ["action", "requestId", "buttonCode", "commandSize"]
 
         self.check_request(request, allowed_attributes)
 
@@ -30,23 +31,28 @@ class ACKValidator(BaseRequestValidator):
         remotes_response = self.remotes_model.get_remotes({"remoteName": orig_request["remoteName"]})
         if remotes_response['statusCode']==404 or remotes_response['statusCode']==500:
             raise InvalidRequestError('Remote no longer exists.')
-        command_size = remotes_response['body']['commandSize']
 
-        #Check if button code is valid HEX code
-        pattern = r'^[0-9A-Fa-f]+$'
+        #Check if button code is valid 
 
-        if request['buttonCode'][0:2] != '0x' or not re.match(pattern, request['buttonCode'][2:]):
-            raise InvalidRequestError("Code provided is not valid hex code.")
+        try:
+            raw_list = ast.literal_eval(request['buttonCode'])
+        except:
+            raise InvalidRequestError("Code provided is not valid code in raw format.")
         
-        #Check if bit length of provided buttonCode matches the requested one
-        if int(request['buttonCode'], 16).bit_length() != int(command_size):
-            raise InvalidRequestError(f"Code bit length provided doesn't match the requested one of {command_size} bits")
+        for item in raw_list:
+            if not isinstance(item, int):
+                raise InvalidRequestError
+            
+        if len(raw_list) != int(request['commandSize']):
+            raise InvalidRequestError(f"Code bit length provided doesn't match the requested one of {request['commandSize']} bits")
+            
         
+       
 
 
     def validate_ack_execute(self, request: dict):
 
-        allowed_attributes = ["action", "requestId", "buttonCode"]
+        allowed_attributes = ["action", "requestId"]
 
         self.check_request(request, allowed_attributes)
 
@@ -55,9 +61,9 @@ class ACKValidator(BaseRequestValidator):
         if requestpool_response['statusCode']==404 or requestpool_response['statusCode']==500:
             raise InvalidRequestError('RequestId does not exist.')
 
-        orig_request = requestpool_response['body']
+        req = requestpool_response['body']
         try: 
-            orig_request = json.loads(orig_request)
+            orig_request = json.loads(req['requestBody'])
         except:
             raise InvalidRequestError('Unexpected issue with loading original request.')
         

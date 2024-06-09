@@ -37,8 +37,6 @@ class RemotesModel(ObjectDynamodb):
 
         self.validator.validate(remote, params=['remoteName', 
                                                 'macAddress', 
-                                                'commandSize',
-                                                'protocol',
                                                 'buttons'])
         
         return self.add_item(remote)
@@ -63,12 +61,14 @@ class RemotesModel(ObjectDynamodb):
 
         #Button code is temporarily a tuple of the code and command size for the validator to test if it matches
         button = {"buttonName": body["buttonName"],
-                  "buttonCode": (body["buttonCode"], response['body']['commandSize'])}
+                  "buttonCode": (body["buttonCode"], body["commandSize"]),
+                  "commandSize": body["commandSize"]}
         
         self.validator.validate(button, params=['buttonName', 
-                                                'buttonCode'])
-
-        #Button code is now back to how it should be.
+                                                'buttonCode',
+                                                'commandSize'])
+        
+        #Button code is back to how it should be
         button['buttonCode'] = body["buttonCode"]
 
         return self.append_to_list(remote, "buttons", button)

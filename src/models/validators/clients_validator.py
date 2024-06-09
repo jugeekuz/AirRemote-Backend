@@ -10,11 +10,11 @@ class ClientsValidator(BaseValidator):
         if not isinstance(key, str):
             return False
 
-        if len(key)%4 != 0:
-            return False
+        # if len(key)%4 != 0:
+        #     return False
         
-        if not re.match(r'^[A-Za-z0-9+/\-]+={0,2}$', key):
-            return False
+        # if not re.match(r'^[A-Za-z0-9+/\-]+={0,2}$', key):
+        #     return False
         
         return True
     

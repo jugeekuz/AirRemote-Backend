@@ -36,8 +36,6 @@ class CMDController(WebSocketMixinV2):
         iot_command = {
             'action': 'cmd',
             'cmd': 'read',
-            'protocol': remote_res['body']['protocol'],
-            'commandSize': remote_res['body']['commandSize'],
             'requestId': requestpool_res['body']['requestId']
         }
 
@@ -64,8 +62,7 @@ class CMDController(WebSocketMixinV2):
         iot_command = {
             'action': 'cmd',
             'cmd': 'execute',
-            'protocol': remote_res['body']['protocol'],
-            'commandSize': remote_res['body']['commandSize'],
+            'commandSize': button_res['body']['commandSize'],
             'buttonCode' : button_res['body']['buttonCode'],
             'requestId': requestpool_res['body']['requestId']
         }

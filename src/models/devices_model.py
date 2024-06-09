@@ -57,7 +57,7 @@ class DevicesModel(ObjectDynamodb):
             
         return response
 
-    
+    @error_handler
     def remove_connection(self, connection: dict):
         '''
         Method that searches for the device matching the connection and sets it to null if exists.

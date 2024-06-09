@@ -29,7 +29,9 @@ class ACKController(WebSocketMixin):
         self.validator.validate_ack_read(message)
 
         requestpool_response = self.requestpool_model.get_requests({'requestId': message['requestId']})
+
         requestpool_entry = requestpool_response['body']
+
         requestpool_response = self.requestpool_model.delete_request({'requestId': requestpool_entry['requestId']})
 
         original_request = json.loads(requestpool_entry['requestBody'])
@@ -37,10 +39,11 @@ class ACKController(WebSocketMixin):
         button = {
             "remoteName": original_request['remoteName'],
             "buttonName": original_request['buttonName'],
+            "commandSize": message['commandSize'],
             "buttonCode": message['buttonCode']
         }
-        self.remotes_model.add_button(button)
-        
+        button_response = self.remotes_model.add_button(button)
+        print(f"Button response : {button_response}")
         ack_message = {
             'action': 'msg',
             'type': 'ack',
@@ -77,7 +80,7 @@ class ACKController(WebSocketMixin):
 
     @WebSocketMixin.notify_if_error
     def route(self, request: dict):
-        if 'buttonName' in request:
+        if 'buttonCode' in request:
             return self.handle_ack_read(request)
         else:
             return self.handle_ack_execute(request)

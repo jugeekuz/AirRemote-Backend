@@ -1,4 +1,5 @@
 import re
+import ast
 from typing import Tuple
 from .mixins import BaseValidator
 
@@ -31,9 +32,15 @@ class RemotesValidator(BaseValidator):
         if not isinstance(command_size, str):
             return False
 
-        allowed_sizes = ['16', '32', '64']
+        try:
+            command_size_int = int(command_size)
+        except:
+            return False
+        
+        if command_size_int > 1024:
+            return False
 
-        return (command_size in allowed_sizes)
+        return True
 
     def check_protocol(self, protocol_name: str):
         '''
@@ -66,15 +73,20 @@ class RemotesValidator(BaseValidator):
         if not isinstance(button_code, str):
             return False
         
-        if button_code[0:2] != '0x':
+        try:
+            raw_list = ast.literal_eval(button_code)
+        except:
             return False
         
-        pattern = r'^[0-9A-Fa-f]+$'
-
-        if not re.match(pattern, button_code[2:]):
+        for item in raw_list:
+            if not isinstance(item, int):
+                return False
+            
+        if len(raw_list) != int(command_size):
             return False
 
-        return (int(button_code, 16).bit_length() == int(command_size))
+        return True
+
 
     def check_buttons(self, buttons: list):
         '''
@@ -84,7 +96,9 @@ class RemotesValidator(BaseValidator):
             return False
         try:
             for btn in buttons:
-                self.validate(btn, ['buttonName', 'buttonCode'])
+                temp_btn = btn.copy()
+                temp_btn['buttonCode'] = (temp_btn['buttonCode'], temp_btn['commandSize'])
+                self.validate(btn, ['buttonName', 'buttonCode', 'commandSize'])
         except:
             return False
         
@@ -92,7 +106,7 @@ class RemotesValidator(BaseValidator):
     def validate(self, items: dict, params: list):
         check_attributes = {
             'remoteName': self.check_remote_name,
-            'protocol': self.check_protocol,
+            #'protocol': self.check_protocol,
             'macAddress': self.check_mac,
             'commandSize': self.check_command_size,
             'buttons': self.check_buttons,
