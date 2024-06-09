@@ -35,7 +35,6 @@ class ErrorController(WebSocketMixin):
             'requestId': message['requestId'],
             'body': message['body']
         }
-
         return self.send_message(error_message, requestpool_response['body']['connectionId'])
     
     @WebSocketMixin.notify_if_error
