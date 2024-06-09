@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 aws-lambda-typing = "*"
 boto3 = "*"
+urllib3 = "*"
 
 [dev-packages]
 

@@ -7,7 +7,7 @@ provider:
   runtime: python3.12
   stage: ${opt:stage, 'dev'}
   region: eu-central-1
-  timeout: 900
+  timeout: 60
 
   iam:
     role:
@@ -16,6 +16,7 @@ provider:
           Action:
             - "dynamodb:GetItem"
             - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
             - "dynamodb:DeleteItem"
             - "dynamodb:Scan"
           Resource:
@@ -31,9 +32,35 @@ provider:
           Resource:
             - { "Fn::GetAtt": ["IRRemotes", "Arn"] }
 
+        - Effect: Allow
+          Action:
+            - "dynamodb:ConditionCheckItem"
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
+            - "dynamodb:DeleteItem"
+            - "dynamodb:Scan"
+            - "dynamodb:Query"
+          Resource:
+            - { "Fn::GetAtt": ["IoTDevices", "Arn"] }
+
+        - Effect: Allow
+          Action:
+            - "dynamodb:ConditionCheckItem"
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
+            - "dynamodb:DeleteItem"
+            - "dynamodb:Scan"
+            - "dynamodb:Query"
+          Resource:
+            - { "Fn::GetAtt": ["RequestPool", "Arn"] }
+
   environment: 
     CLIENTS_TABLE_NAME: ${self:provider.stage}WSClients
     REMOTES_TABLE_NAME: ${self:provider.stage}IRRemotes
+    IOT_DEVICES_TABLE_NAME: ${self:provider.stage}IoTDevices
+    REQUEST_POOL_TABLE_NAME: ${self:provider.stage}RequestPool
     WSSAPIGATEWAYENDPOINT:
       Fn::Join:
         - ""
@@ -46,14 +73,62 @@ provider:
 
 functions:
   websocketHandler:
-    handler: src/handler.handle
+    handler: src/websockets_router.handle
     events:
       - websocket:
           route: $connect
       - websocket:
           route: $disconnect
       - websocket:
-          route: msg
+          route: cmd
+      - websocket:
+          route: ack
+      - websocket:
+          route: error
+
+  httpDataHandler:
+    handler: src/http_router.handle
+    events:
+      - httpApi:
+          path: /api/remotes
+          method: GET
+      - httpApi:
+          path: /api/remotes
+          method: POST
+
+      - httpApi:
+          path: /api/remotes/{remoteName}
+          method: GET
+      - httpApi:
+          path: /api/remotes/{remoteName}
+          method: DELETE
+
+      - httpApi:
+          path: /api/remotes/{remoteName}/buttons
+          method: POST      
+      - httpApi:
+          path: /api/remotes/{remoteName}/buttons/{buttonName}
+          method: DELETE
+
+      - httpApi:
+          path: /api/devices
+          method: GET
+      - httpApi:
+          path: /api/devices
+          method: POST
+      - httpApi:
+          path: /api/devices/{macAddress}
+          method: GET
+      - httpApi:
+          path: /api/devices/{macAddress}
+          method: PUT
+      - httpApi:
+          path: /api/devices/{macAddress}
+          method: DELETE
+      - httpApi:
+          path: /api/devices/connected
+          method: GET
+  
 
 
 plugins:
@@ -82,15 +157,37 @@ resources:
         AttributeDefinitions:
           - AttributeName: remoteName
             AttributeType: S
-          # - AttributeName: protocol
-          #   AttributeType: S
-          # - AttributeName: commandSize
-          #   AttributeType: S
-          # - AttributeName: buttons
-          #   AttributeType: L
         KeySchema:
           - AttributeName: remoteName
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 2
           WriteCapacityUnits: 2
+
+    IoTDevices:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.IOT_DEVICES_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: macAddress
+            AttributeType: S
+        KeySchema:
+          - AttributeName: macAddress
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
+
+    RequestPool:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.REQUEST_POOL_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: requestId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: requestId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
