@@ -191,12 +191,11 @@ class ObjectDynamodb:
         )            
         if not "Item" in response or not response["Item"]:
             return {"statusCode": 404,
-                    "body": []}
-        
+                    "body": []}        
         
         obj_list = deserialize_list(response['Item'][list_name])
 
-        is_subset = lambda subset, superset: all(subset_key in superset and superset[subset_key] == subset_value for subset_key, subset_value in subset.items())
+        is_subset = lambda subset, superset: all(subset_key in superset and superset[subset_key].strip() == subset_value.strip() for subset_key, subset_value in subset.items())
 
         new_obj_list = serialize_list([obj for obj in obj_list if not is_subset(item, obj)])
         
@@ -211,8 +210,6 @@ class ObjectDynamodb:
                 ':val': new_obj_list
             }
         )
-        print(list_name)
-        print(new_obj_list)
-        print(response)
+        
         return {"statusCode": 200,
                 "body": "deleted"}

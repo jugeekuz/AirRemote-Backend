@@ -8,6 +8,8 @@ provider:
   stage: ${opt:stage, 'dev'}
   region: eu-central-1
   timeout: 60
+  httpApi:
+      cors: true
 
   iam:
     role:
@@ -43,7 +45,17 @@ provider:
             - "dynamodb:Query"
           Resource:
             - { "Fn::GetAtt": ["IoTDevices", "Arn"] }
-
+        - Effect: Allow
+          Action:
+            - "dynamodb:ConditionCheckItem"
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
+            - "dynamodb:DeleteItem"
+            - "dynamodb:Scan"
+            - "dynamodb:Query"
+          Resource:
+            - { "Fn::GetAtt": ["Automations", "Arn"] }
         - Effect: Allow
           Action:
             - "dynamodb:ConditionCheckItem"
@@ -61,6 +73,7 @@ provider:
     REMOTES_TABLE_NAME: ${self:provider.stage}IRRemotes
     IOT_DEVICES_TABLE_NAME: ${self:provider.stage}IoTDevices
     REQUEST_POOL_TABLE_NAME: ${self:provider.stage}RequestPool
+    AUTOMATIONS_TABLE_NAME: ${self:provider.stage}Automations
     WSSAPIGATEWAYENDPOINT:
       Fn::Join:
         - ""
@@ -95,21 +108,21 @@ functions:
       - httpApi:
           path: /api/remotes
           method: POST
-
+          
       - httpApi:
           path: /api/remotes/{remoteName}
           method: GET
       - httpApi:
           path: /api/remotes/{remoteName}
           method: DELETE
-
+          
       - httpApi:
           path: /api/remotes/{remoteName}/buttons
-          method: POST      
+          method: POST
       - httpApi:
           path: /api/remotes/{remoteName}/buttons/{buttonName}
           method: DELETE
-
+          
       - httpApi:
           path: /api/devices
           method: GET
@@ -128,7 +141,7 @@ functions:
       - httpApi:
           path: /api/devices/connected
           method: GET
-  
+            
 
 
 plugins:
@@ -191,3 +204,18 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
+
+    Automations:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.AUTOMATIONS_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: automationName
+            AttributeType: S
+        KeySchema:
+          - AttributeName: automationName
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+

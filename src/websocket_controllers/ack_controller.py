@@ -45,8 +45,7 @@ class ACKController(WebSocketMixin):
         button_response = self.remotes_model.add_button(button)
         print(f"Button response : {button_response}")
         ack_message = {
-            'action': 'msg',
-            'type': 'ack',
+            'action': 'ack',
             'requestId': requestpool_entry['requestId'],
             'body': 'success'
         }
@@ -69,8 +68,7 @@ class ACKController(WebSocketMixin):
         original_request = json.loads(requestpool_entry['requestBody'])
 
         ack_message = {
-            'action': 'msg',
-            'type': 'ack',
+            'action': 'ack',
             'requestId': requestpool_entry['requestId'],
             'body': 'success'
         }

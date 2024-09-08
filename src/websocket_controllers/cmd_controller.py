@@ -49,15 +49,20 @@ class CMDController(WebSocketMixinV2):
         :param dict `request`: Message containing the request sent from the frontend
         :return : Response of the attempt to send the message to the websocket connection. 
         '''
-        
+        print("Breakpoint 1")
+        print(request)
         self.validator.validate_button_execute(request)
-
         remote_res = self.remotes_model.get_remotes({'remoteName': request['remoteName']})
+        print(remote_res)
         button_res = self.remotes_model.get_button(remote_res['body'],
                                                    {'buttonName': request['buttonName']})
+        print(button_res)
+        
         
         self.request_pool_model.clean_expired_requests()
         requestpool_res = self.request_pool_model.add_request(self.connection_id, request)
+        print(requestpool_res)
+
 
         iot_command = {
             'action': 'cmd',
@@ -66,7 +71,7 @@ class CMDController(WebSocketMixinV2):
             'buttonCode' : button_res['body']['buttonCode'],
             'requestId': requestpool_res['body']['requestId']
         }
-
+        print(iot_command)
         return self._send_message_device({'macAddress': remote_res['body']['macAddress']}, iot_command)
     
     @WebSocketMixinV2.notify_if_error

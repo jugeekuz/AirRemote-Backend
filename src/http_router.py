@@ -40,7 +40,7 @@ def handle(event, context):
     }
 
     route_key = event["routeKey"]
-
+    
     return {
         'statusCode': 200,
         'headers': {'Content-Type': 'application/json'},
