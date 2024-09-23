@@ -36,6 +36,7 @@ class RemotesModel(ObjectDynamodb):
     def add_remote(self, remote: dict):
 
         self.validator.validate(remote, params=['remoteName', 
+                                                'category',
                                                 'macAddress', 
                                                 'buttons'])
         
@@ -60,7 +61,7 @@ class RemotesModel(ObjectDynamodb):
             raise ResponseError(f"Unexpected response error when using `get_remotes`, received status code {response['statusCode']} and body {response['body']}.")
 
         #Button code is temporarily a tuple of the code and command size for the validator to test if it matches
-        button = {"buttonName": body["buttonName"].strip(),
+        button = {"buttonName": body["buttonName"].strip(),#AWS strips spaces from query param
                   "buttonCode": (body["buttonCode"], body["commandSize"]),
                   "commandSize": body["commandSize"]}
         

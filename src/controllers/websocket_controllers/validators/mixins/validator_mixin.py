@@ -1,4 +1,4 @@
-from ....utils.errors import InvalidRequestError
+from .....utils.errors import InvalidRequestError
 class BaseRequestValidator:
     '''
     Class to be used as base class to be inherited by other validators.

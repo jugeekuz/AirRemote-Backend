@@ -120,8 +120,8 @@ Allowed Websocket Requests:
 
 '''
 import re
-from ...models import DevicesModel, RemotesModel
-from ...utils.errors import InvalidRequestError
+from ....models import DevicesModel, RemotesModel
+from ....utils.errors import InvalidRequestError
 from .mixins.validator_mixin import BaseRequestValidator
 class CMDValidator(BaseRequestValidator):
     def __init__(self, remotes_model: RemotesModel, devices_model: DevicesModel):

@@ -1,7 +1,7 @@
 import json
 import boto3
-from ...utils.helpers import error_handler, check_response
-from ...models import DevicesModel
+from ....utils.helpers import error_handler, check_response
+from ....models import DevicesModel
 import functools
 
 class WebSocketMixin:

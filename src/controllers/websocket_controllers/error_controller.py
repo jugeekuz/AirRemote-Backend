@@ -1,16 +1,18 @@
 import json
 from .mixins.websocket_mixins import WebSocketMixin
-from ..models import RequestPoolModel
+from ...models import RequestPoolModel, AutomationsModel
 from .validators.error_validator import ErrorValidator
-from ..utils.helpers import error_handler
+from ...utils.helpers import error_handler
 
 class ErrorController(WebSocketMixin):
     def __init__(self, 
                  endpoint_url: str, 
                  connection_id: str,
-                 request_pool_model: RequestPoolModel):
+                 request_pool_model: RequestPoolModel,
+                 automations_model: AutomationsModel):
         
         self.request_pool_model = request_pool_model
+        self.automations_model = automations_model
         self.validator = ErrorValidator(request_pool_model)
         super().__init__(endpoint_url, connection_id)
 
@@ -37,6 +39,14 @@ class ErrorController(WebSocketMixin):
         }
         return self.send_message(error_message, requestpool_response['body']['connectionId'])
     
+    def handle_automation_error(self, message: dict):
+        
+        return self.automations_model.set_error_message({'automationId': message['automationId']}, message['body'])
+
+
     @WebSocketMixin.notify_if_error
     def route(self, request: dict):
-        return self.handle_error_message(request)
+        if 'automationId' in request:
+            return self.handle_automation_error(request)
+        else :
+            return self.handle_error_message(request)

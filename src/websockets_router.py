@@ -1,15 +1,15 @@
 import os
 import json
-from .models import RemotesModel, ClientsModel, DevicesModel, RequestPoolModel
-from .websocket_controllers.cmd_controller import CMDController
-from .websocket_controllers.ack_controller import ACKController
-from .websocket_controllers.error_controller import ErrorController
+from .models import RemotesModel, ClientsModel, DevicesModel, RequestPoolModel, AutomationsModel
+from .controllers.websocket_controllers.cmd_controller import CMDController
+from .controllers.websocket_controllers.ack_controller import ACKController
+from .controllers.websocket_controllers.error_controller import ErrorController
 from .utils.helpers import error_handler, check_response
 
 WSSAPIGATEWAYENDPOINT = os.getenv("WSSAPIGATEWAYENDPOINT")
-REMOTES_TABLE, CLIENTS_TABLE, DEVICES_TABLE, REQUEST_POOL_TABLE = os.getenv("REMOTES_TABLE_NAME", ""), os.getenv("CLIENTS_TABLE_NAME", ""), os.getenv("IOT_DEVICES_TABLE_NAME", ""), os.getenv("REQUEST_POOL_TABLE_NAME", "")
+REMOTES_TABLE, CLIENTS_TABLE, DEVICES_TABLE, REQUEST_POOL_TABLE, AUTOMATIONS_TABLE = os.getenv("REMOTES_TABLE_NAME", ""), os.getenv("CLIENTS_TABLE_NAME", ""), os.getenv("IOT_DEVICES_TABLE_NAME", ""), os.getenv("REQUEST_POOL_TABLE_NAME", ""), os.getenv("AUTOMATIONS_TABLE_NAME", "")
 
-remotes_model, clients_model, devices_model, requestpool_model = RemotesModel(REMOTES_TABLE), ClientsModel(CLIENTS_TABLE), DevicesModel(DEVICES_TABLE), RequestPoolModel(REQUEST_POOL_TABLE)
+remotes_model, clients_model, devices_model, requestpool_model, automations_model = RemotesModel(REMOTES_TABLE), ClientsModel(CLIENTS_TABLE), DevicesModel(DEVICES_TABLE), RequestPoolModel(REQUEST_POOL_TABLE), AutomationsModel(AUTOMATIONS_TABLE)
 
 def connect(connection: dict, query_parameters: dict):
     '''
@@ -27,7 +27,7 @@ def disconnect(connection: dict):
     '''
     Method handling websocket disconnects by deleting clients and setting device as disconnected (if it's a device).
     '''
-    response_devices = devices_model.remove_connection(connection)
+    response_devices = devices_model.remove_connection(connection) 
     
     return clients_model.delete_client(connection)
 
@@ -42,9 +42,9 @@ def handle(event, context):
     body = json.loads(body) if body else ''
     connection = {"connectionId": connection_id}
 
-    cmd_controller = CMDController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model, remotes_model, devices_model)
-    ack_controller = ACKController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model, remotes_model)
-    error_controller = ErrorController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model)
+    cmd_controller = CMDController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model, remotes_model, devices_model, automations_model)
+    ack_controller = ACKController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model, remotes_model, devices_model, automations_model)
+    error_controller = ErrorController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model, automations_model)
 
     websocket_router = {
         '$connect': lambda: connect(connection, query_params),

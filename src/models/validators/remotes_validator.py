@@ -94,6 +94,7 @@ class RemotesValidator(BaseValidator):
         '''
         if not isinstance(buttons, list):
             return False
+        
         try:
             for btn in buttons:
                 temp_btn = btn.copy()
@@ -103,10 +104,20 @@ class RemotesValidator(BaseValidator):
             return False
         
         return True
+    
+    def check_remote_category(self, remote_category: str):
+        if not isinstance(remote_category, str):
+            return False
+        allowed_values = ["Air Conditioner", "Audio System", "Dehumidifier", "Heater", "RGB Lights", "Smart TV", "Generic Device"]
+        if remote_category not in allowed_values:
+            return False
+        return True
+    
     def validate(self, items: dict, params: list):
         check_attributes = {
             'remoteName': self.check_remote_name,
             #'protocol': self.check_protocol,
+            'category': self.check_remote_category,
             'macAddress': self.check_mac,
             'commandSize': self.check_command_size,
             'buttons': self.check_buttons,

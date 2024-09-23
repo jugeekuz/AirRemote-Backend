@@ -141,6 +141,29 @@ functions:
       - httpApi:
           path: /api/devices/connected
           method: GET
+
+      - httpApi:
+          path: /api/automations
+          method: GET
+      - httpApi:
+          path: /api/automations
+          method: POST
+      - httpApi:
+          path: /api/automations/{automationId}
+          method: DELETE
+      - httpApi:
+          path: /api/automations/{automationId}
+          method: GET
+      - httpApi:
+          path: /api/automations/{automationId}/increment
+          method: PUT
+      - httpApi:
+          path: /api/automations/clean
+          method: PUT
+      
+      - httpApi:
+          path: /api/automations/{automationId}/start
+          method: POST
             
 
 
@@ -210,10 +233,10 @@ resources:
       Properties:
         TableName: ${self:provider.environment.AUTOMATIONS_TABLE_NAME}
         AttributeDefinitions:
-          - AttributeName: automationName
+          - AttributeName: automationId
             AttributeType: S
         KeySchema:
-          - AttributeName: automationName
+          - AttributeName: automationId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 5

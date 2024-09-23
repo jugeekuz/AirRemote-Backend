@@ -1,9 +1,9 @@
 import json
 import ast
 import re
-from ...models import RequestPoolModel, RemotesModel
+from ....models import RequestPoolModel, RemotesModel
 from .mixins.validator_mixin import BaseRequestValidator
-from ...utils.errors import InvalidRequestError
+from ....utils.errors import InvalidRequestError
 
 class ACKValidator(BaseRequestValidator):
     def __init__(self, requestpool_model: RequestPoolModel, remotes_model: RemotesModel):
