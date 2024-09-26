@@ -88,10 +88,12 @@ class CMDController(WebSocketMixinV2):
                                                    {'buttonName': button['buttonName']})
 
         if remote_res['statusCode'] == 404 :
-            return self.automations_model.set_error_message(key, f"Remote {button['remoteName']} doesn't exist")
+            _ = self.automations_model.set_error_message(key, f"Remote {button['remoteName']} doesn't exist")
+            return remote_res
 
         if button_res['statusCode'] == 404 :
-            return self.automations_model.set_error_message(key, f"Button {button['buttonName']} in remote {button['remoteName']} doesn't exist")
+            _ = self.automations_model.set_error_message(key, f"Button {button['buttonName']} in remote {button['remoteName']} doesn't exist")
+            return button_res
         
 
         iot_command = {
@@ -104,7 +106,8 @@ class CMDController(WebSocketMixinV2):
         message_response =  self._send_message_device({'macAddress': remote_res['body']['macAddress']}, iot_command)
 
         if message_response['statusCode'] == 500:
-            return self.automations_model.set_error_message(message_response['body'])
+            _ = self.automations_model.set_error_message(key, message_response['body'])
+            return message_response
 
         return message_response
         

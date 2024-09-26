@@ -44,7 +44,8 @@ class AutomationsModel(ObjectDynamodb):
                         "executedCounter": "0",
                         "totalButtons": str(len(automation['buttonsList'])),
                         "errorMessage": "",
-                        "runError": "False"
+                        "runError": "False",
+                        "automationState": "ENABLED"
                      }
         automation = { 
                         **automation, 
@@ -58,10 +59,16 @@ class AutomationsModel(ObjectDynamodb):
                                                     "executedCounter",
                                                     "totalButtons",
                                                     "errorMessage",
-                                                    "runError"
+                                                    "runError",
+                                                    "automationState"
                                                     ])
 
-        return self.add_item(automation)
+        response = self.add_item(automation)
+
+        if response['statusCode'] == 201:      
+            response['body'] = {'automationId' : automation_id}
+        
+        return response
     
     @error_handler
     def delete_automation(self, key: dict):
@@ -70,6 +77,13 @@ class AutomationsModel(ObjectDynamodb):
         
         return self.delete_item(key)
     
+    @error_handler
+    def set_automation_state(self, key: dict, state: str):
+        
+        self.validator.validate({**key, "automationState": state}, ['automationId',
+                                                                    'automationState'])
+
+        return self.update_item(key, {"automationState": state})
 
     @error_handler
     def increment_counter(self, key: dict):
@@ -88,7 +102,9 @@ class AutomationsModel(ObjectDynamodb):
 
         if counter == totalButtons - 1:
             self.update_item(key, { "executedCounter": '0',
-                                    "lastTimestamp": time.isoformat() })
+                                    "lastTimestamp": time.isoformat(),
+                                    "errorMessage": "",
+                                    "runError": "False" })
             return {"statusCode": 200,
                     "body": "Automation Finished"} 
 

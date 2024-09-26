@@ -10,10 +10,42 @@ provider:
   timeout: 60
   httpApi:
       cors: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - "lambda:InvokeFunction"
+      Resource:
+        - "*"
 
   iam:
     role:
       statements:
+        - Effect: "Allow"
+          Action:
+            - "events:PutRule"
+            - "events:PutTargets"
+            - "events:DeleteRule"
+            - "events:RemoveTargets"
+          Resource: "*"  
+
+        - Effect: "Allow"
+          Action:
+            - "lambda:InvokeFunction"
+          Resource: "*"
+
+        - Effect: Allow
+          Action:
+            - iam:CreateRole
+            - iam:PutRolePolicy
+            - iam:PassRole
+            - iam:AttachRolePolicy
+            - iam:GetRole
+            - scheduler:CreateSchedule
+            - scheduler:GetSchedule 
+            - scheduler:UpdateSchedule 
+            - scheduler:DeleteSchedule
+          Resource: "*"
+
         - Effect: Allow
           Action:
             - "dynamodb:GetItem"
@@ -85,6 +117,9 @@ provider:
 
 
 functions:
+  automationsHandler:
+    handler: src/automations_handler.handle  
+
   websocketHandler:
     handler: src/websockets_router.handle
     events:
@@ -102,13 +137,13 @@ functions:
   httpDataHandler:
     handler: src/http_router.handle
     events:
+      # REMOTES
       - httpApi:
           path: /api/remotes
           method: GET
       - httpApi:
           path: /api/remotes
-          method: POST
-          
+          method: POST          
       - httpApi:
           path: /api/remotes/{remoteName}
           method: GET
@@ -122,7 +157,7 @@ functions:
       - httpApi:
           path: /api/remotes/{remoteName}/buttons/{buttonName}
           method: DELETE
-          
+      # DEVICES
       - httpApi:
           path: /api/devices
           method: GET
@@ -141,29 +176,30 @@ functions:
       - httpApi:
           path: /api/devices/connected
           method: GET
-
+      # AUTOMATIONS
       - httpApi:
           path: /api/automations
           method: GET
       - httpApi:
           path: /api/automations
           method: POST
+      - httpApi:
+          path: /api/automations/{automationId}
+          method: GET
       - httpApi:
           path: /api/automations/{automationId}
           method: DELETE
       - httpApi:
-          path: /api/automations/{automationId}
-          method: GET
-      - httpApi:
-          path: /api/automations/{automationId}/increment
-          method: PUT
-      - httpApi:
-          path: /api/automations/clean
-          method: PUT
-      
+          path: /api/automations/{automationId}/state
+          method: POST
       - httpApi:
           path: /api/automations/{automationId}/start
           method: POST
+    environment:
+      AUTOMATIONS_FUNCTION_ARN: 
+        Fn::GetAtt: 
+            - AutomationsHandlerLambdaFunction  
+            - Arn    
             
 
 
@@ -241,4 +277,4 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
-
+    

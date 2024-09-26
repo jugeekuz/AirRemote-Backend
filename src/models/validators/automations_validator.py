@@ -128,6 +128,16 @@ class AutomationsValidator(BaseValidator):
         
         return True
     
+    def check_state(self, state: str):
+
+        if not isinstance(state, str):
+            return False
+        
+        if not state in ["ENABLED", "DISABLED"]:
+            return False
+        
+        return True
+
     def validate(self, items: dict, params: list):
         check_attributes = {
             'automationId': self.check_automation_id,
@@ -137,6 +147,7 @@ class AutomationsValidator(BaseValidator):
             'executedCounter': self.check_executed_counter,
             'totalButtons': self.check_button_name,
             'errorMessage': self.check_error_message,
+            'automationState': self.check_state,
             'runError': self.check_run_error
         }
         super().validate(check_attributes, items, params=params)

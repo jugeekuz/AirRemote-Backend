@@ -1,13 +1,12 @@
 import json
 import os
-import boto3
 from .models import RemotesModel, ClientsModel, DevicesModel, RequestPoolModel, AutomationsModel
 from .controllers.websocket_controllers.cmd_controller import CMDController
-
-client = boto3.client('apigatewayv2')
-
+from .controllers.automation_controllers.automation_controller import create_automation
+from .controllers.automation_controllers.automation_controller import create_automation, delete_automation, set_automation_state
 WSSAPIGATEWAYENDPOINT = os.getenv("WSSAPIGATEWAYENDPOINT")
 REMOTES_TABLE, CLIENTS_TABLE, DEVICES_TABLE, REQUEST_POOL_TABLE, AUTOMATIONS_TABLE = os.getenv("REMOTES_TABLE_NAME", ""), os.getenv("CLIENTS_TABLE_NAME", ""), os.getenv("IOT_DEVICES_TABLE_NAME", ""), os.getenv("REQUEST_POOL_TABLE_NAME", ""), os.getenv("AUTOMATIONS_TABLE_NAME", "")
+AUTOMATIONS_FUNCTION_ARN = os.environ.get('AUTOMATIONS_FUNCTION_ARN')
 
 remotes, clients, devices, requestpool, automations = RemotesModel(REMOTES_TABLE), ClientsModel(CLIENTS_TABLE), DevicesModel(DEVICES_TABLE), RequestPoolModel(REQUEST_POOL_TABLE), AutomationsModel(AUTOMATIONS_TABLE)
 
@@ -42,13 +41,12 @@ def handle(event, context):
         'DELETE /api/devices/{macAddress}': lambda : devices.delete_device({"macAddress" : query_params["macAddress"]}),
         'GET /api/devices/connected': lambda : devices.get_connected_devices(),
 
+        #AUTOMATION ENDPOINTS
         'GET /api/automations': lambda : automations.get_automations(),
         'GET /api/automations/{automationId}': lambda : automations.get_automation({"automationId": query_params["automationId"]}),
-        'POST /api/automations': lambda : automations.add_automation(body),
-        'DELETE /api/automations/{automationId}': lambda : automations.delete_automation({"automationId": query_params["automationId"]}),
-        'PUT /api/automations/{automationId}/increment': lambda : automations.increment_counter({"automationId": query_params["automationId"]}),
-        'PUT /api/automations/clean': lambda : automations.clean_expired_automations(),
-
+        'POST /api/automations': lambda : create_automation(automations, AUTOMATIONS_FUNCTION_ARN, body),
+        'DELETE /api/automations/{automationId}': lambda : delete_automation(automations, {"automationId": query_params["automationId"]}),
+        'POST /api/automations/{automationId}/state': lambda : set_automation_state(automations, {"automationId": query_params["automationId"]}, body["state"]),
         'POST /api/automations/{automationId}/start': lambda : cmd_controller.automation_execute({"automationId": query_params["automationId"]}),
     }
 
