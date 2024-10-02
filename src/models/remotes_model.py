@@ -63,11 +63,13 @@ class RemotesModel(ObjectDynamodb):
         #Button code is temporarily a tuple of the code and command size for the validator to test if it matches
         button = {"buttonName": body["buttonName"].strip(),#AWS strips spaces from query param
                   "buttonCode": (body["buttonCode"], body["commandSize"]),
-                  "commandSize": body["commandSize"]}
+                  "commandSize": body["commandSize"],
+                  "buttonState": body["buttonState"]}
         
         self.validator.validate(button, params=['buttonName', 
                                                 'buttonCode',
-                                                'commandSize'])
+                                                'commandSize',
+                                                'buttonState'])
         
         #Button code is back to how it should be
         button['buttonCode'] = body["buttonCode"]

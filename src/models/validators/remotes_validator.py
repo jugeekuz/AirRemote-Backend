@@ -87,6 +87,15 @@ class RemotesValidator(BaseValidator):
 
         return True
 
+    def check_button_state(self, state: str):
+        
+        if not isinstance(state, str):
+            return False
+        
+        if state not in ["YES", "NO"]:
+            return False
+        
+        return True
 
     def check_buttons(self, buttons: list):
         '''
@@ -122,6 +131,7 @@ class RemotesValidator(BaseValidator):
             'commandSize': self.check_command_size,
             'buttons': self.check_buttons,
             'buttonName': self.check_button_name,
-            'buttonCode': self.check_button_code
+            'buttonCode': self.check_button_code,
+            'buttonState': self.check_button_state
         }
         super().validate(check_attributes, items, params=params)

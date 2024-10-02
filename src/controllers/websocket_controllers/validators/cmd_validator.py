@@ -131,7 +131,7 @@ class CMDValidator(BaseRequestValidator):
 
     def validate_button_read(self, request: dict):
 
-        allowed_attributes = ["action", "cmd", "remoteName", "buttonName"]
+        allowed_attributes = ["action", "cmd", "remoteName", "buttonName", "buttonState"]
 
         self.check_request(request, allowed_attributes)
 

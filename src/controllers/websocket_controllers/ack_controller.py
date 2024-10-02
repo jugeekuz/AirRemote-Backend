@@ -41,13 +41,15 @@ class ACKController(WebSocketMixin):
         requestpool_response = self.requestpool_model.delete_request({'requestId': requestpool_entry['requestId']})
 
         original_request = json.loads(requestpool_entry['requestBody'])
-
+    
         button = {
             "remoteName": original_request['remoteName'],
             "buttonName": original_request['buttonName'],
             "commandSize": message['commandSize'],
-            "buttonCode": message['buttonCode']
+            "buttonCode": message['buttonCode'],
+            "buttonState": original_request['buttonState']
         }
+
         button_response = self.remotes_model.add_button(button)
         
         ack_message = {
