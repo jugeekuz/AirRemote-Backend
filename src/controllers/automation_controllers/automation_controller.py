@@ -10,7 +10,7 @@ def create_automation(automations_model : AutomationsModel, lambda_arn: str, arg
     
     scheduler = boto3.client('scheduler')
 
-    attributes = ['automationName', 'buttonsList', 'cronExpression']
+    attributes = ['automationName', 'automationHour', 'automationMinutes', 'automationDays', 'buttonsList', 'cronExpression']
     
     if len(attributes)!=len(args) or not all(attr in args for attr in attributes):
         return {
@@ -20,7 +20,10 @@ def create_automation(automations_model : AutomationsModel, lambda_arn: str, arg
 
     automations_response = automations_model.add_automation({
                                 "automationName": args["automationName"],
-                                "buttonsList": args["buttonsList"]
+                                "buttonsList": args["buttonsList"],
+                                "automationHour": args["automationHour"],
+                                "automationMinutes": args["automationMinutes"],
+                                "automationDays": args["automationDays"],
                             })
     
     if not check_response(automations_response):
@@ -46,9 +49,6 @@ def delete_automation(automations_model: AutomationsModel, args: dict):
         }
     
     response = delete_eventbridge_schedule(scheduler, args["automationId"])
-
-    if not check_response(response) :
-        return response
 
     return automations_model.delete_automation({"automationId": args["automationId"]})
 

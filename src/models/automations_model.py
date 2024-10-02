@@ -54,6 +54,9 @@ class AutomationsModel(ObjectDynamodb):
 
         self.validator.validate(automation, params=["automationId",
                                                     "automationName",
+                                                    "automationHour",
+                                                    "automationMinutes",
+                                                    "automationDays",
                                                     "buttonsList",
                                                     "lastTimestamp",
                                                     "executedCounter",

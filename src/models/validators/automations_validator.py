@@ -137,11 +137,56 @@ class AutomationsValidator(BaseValidator):
             return False
         
         return True
+    
+    def check_automation_hour(self, hour: str):
+        
+        if not isinstance(hour, str):
+            return False
+        
+        try:
+            if int(hour) > 23 or int(hour) < 0:
+                return False
+        except:
+            return False
+        
+        return True
+    
+    def check_automation_minutes(self, minutes: str):
+        
+        if not isinstance(minutes, str):
+            return False
+        
+        try:
+            if int(minutes) > 59 or int(minutes) < 0:
+                return False
+        except:
+            return False
+        
+        return True
+        
+    def check_automation_days(self, days: str):
+        
+        if not isinstance(days, str):
+            return False
+        
+        try:
+            exploded_days = re.split(r'[,-]', days)
+
+            for day in exploded_days:
+                if int(day) > 7 or int(day) < 0:
+                    return False
+        except:
+            return False
+        
+        return True
 
     def validate(self, items: dict, params: list):
         check_attributes = {
             'automationId': self.check_automation_id,
             'automationName': self.check_automation_name,
+            "automationHour": self.check_automation_hour,
+            "automationMinutes": self.check_automation_minutes,
+            "automationDays": self.check_automation_days,
             'buttonsList': self.check_buttons_list,
             'lastTimestamp': self.check_timestamp,
             'executedCounter': self.check_executed_counter,
