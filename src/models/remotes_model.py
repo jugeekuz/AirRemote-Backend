@@ -35,9 +35,13 @@ class RemotesModel(ObjectDynamodb):
     @error_handler
     def add_remote(self, remote: dict):
 
+        button_clicks = {"buttonClicks": "0"}
+        remote = {**remote, **button_clicks}
+
         self.validator.validate(remote, params=['remoteName', 
                                                 'category',
                                                 'macAddress', 
+                                                'buttonClicks',
                                                 'buttons'])
         
         return self.add_item(remote)
@@ -120,3 +124,17 @@ class RemotesModel(ObjectDynamodb):
             
         return {"statusCode": 404,
                 "body": "Button does not exist."}
+    
+    @error_handler
+    def increment_counter(self, remote: dict):
+
+        self.validator.validate(remote, params=['remoteName'])
+
+        remote_response = self.get_remotes(remote)
+        print(remote_response)
+        if not check_response(remote_response):
+            return remote_response
+        
+        counter = int(remote_response['body']['buttonClicks']) + 1
+
+        return self.update_item(remote, {'buttonClicks': str(counter)})
