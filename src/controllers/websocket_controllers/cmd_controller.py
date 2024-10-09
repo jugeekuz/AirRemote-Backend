@@ -61,6 +61,7 @@ class CMDController(WebSocketMixinV2):
      
         self.request_pool_model.clean_expired_requests()
         requestpool_res = self.request_pool_model.add_request(self.connection_id, request)
+        _ = self.remotes_model.increment_counter({'remoteName': request['remoteName']})
 
         iot_command = {
             'action': 'cmd',
