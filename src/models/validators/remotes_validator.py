@@ -114,6 +114,18 @@ class RemotesValidator(BaseValidator):
         
         return True
     
+    def check_button_clicks(self, button_clicks: str):
+        if not isinstance(button_clicks, str):
+            return False
+        
+        try:
+            if int(button_clicks) < 0:
+                return False
+        except:
+            return False
+        
+        return True
+    
     def check_remote_category(self, remote_category: str):
         if not isinstance(remote_category, str):
             return False
@@ -132,6 +144,7 @@ class RemotesValidator(BaseValidator):
             'buttons': self.check_buttons,
             'buttonName': self.check_button_name,
             'buttonCode': self.check_button_code,
+            'buttonClicks': self.check_button_clicks,
             'buttonState': self.check_button_state
         }
         super().validate(check_attributes, items, params=params)
