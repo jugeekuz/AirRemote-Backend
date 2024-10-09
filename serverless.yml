@@ -33,6 +33,11 @@ provider:
             - "lambda:InvokeFunction"
           Resource: "*"
 
+        - Effect: "Allow"
+          Action:
+            - "ce:GetCostAndUsage"
+          Resource: "*"
+
         - Effect: Allow
           Action:
             - iam:CreateRole
@@ -99,6 +104,17 @@ provider:
             - "dynamodb:Query"
           Resource:
             - { "Fn::GetAtt": ["RequestPool", "Arn"] }
+        - Effect: Allow
+          Action:
+            - "dynamodb:ConditionCheckItem"
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
+            - "dynamodb:DeleteItem"
+            - "dynamodb:Scan"
+            - "dynamodb:Query"
+          Resource:
+            - { "Fn::GetAtt": ["Statistics", "Arn"] }
 
   environment: 
     CLIENTS_TABLE_NAME: ${self:provider.stage}WSClients
@@ -106,6 +122,7 @@ provider:
     IOT_DEVICES_TABLE_NAME: ${self:provider.stage}IoTDevices
     REQUEST_POOL_TABLE_NAME: ${self:provider.stage}RequestPool
     AUTOMATIONS_TABLE_NAME: ${self:provider.stage}Automations
+    STATISTICS_TABLE_NAME: ${self:provider.stage}Statistics
     WSSAPIGATEWAYENDPOINT:
       Fn::Join:
         - ""
@@ -195,12 +212,24 @@ functions:
       - httpApi:
           path: /api/automations/{automationId}/start
           method: POST
+      # COST API
+      - httpApi:
+          path: /api/costs
+          method: GET
     environment:
       AUTOMATIONS_FUNCTION_ARN: 
         Fn::GetAtt: 
             - AutomationsHandlerLambdaFunction  
             - Arn    
-            
+  calculateMonthlyCost:
+    handler: src/statistics_handler.handle
+    events:
+      - schedule:
+          name: CalculateMonthlyCostRule
+          description: "Triggers the Lambda function at the end of each month to calculate monthly cost"
+          rate: cron(0 0 L * ? *) 
+          enabled: true
+             
 
 
 plugins:
@@ -277,4 +306,18 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
+    # Statistics is going to be a single row table containing info for whole app. The id is going to be `STATISTICS_ID`
+    Statistics:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.STATISTICS_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: statisticsId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: statisticsId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
     

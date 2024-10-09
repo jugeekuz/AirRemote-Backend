@@ -76,8 +76,16 @@ class ObjectDynamodb:
             TableName=self.table,
             Item=item
         )
-        return {"statusCode": 201,
-                "body": "created"} 
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return {
+                "statusCode": 201,
+                "body": "Item successfully created."
+            }
+        else:
+            return {
+                "statusCode": 500,
+                "body": f"Error creating item. DynamoDB returned status code {response['ResponseMetadata']['HTTPStatusCode']}."
+            }
         
    
     @error_handler
@@ -93,8 +101,16 @@ class ObjectDynamodb:
             TableName=self.table,
             Key=key
         )
-        return {"statusCode": 200,
-                "body": "deleted"}
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return {
+                "statusCode": 200,
+                "body": "Item successfully deleted."
+            }
+        else:
+            return {
+                "statusCode": 500,
+                "body": f"Error deleting item. DynamoDB returned status code {response['ResponseMetadata']['HTTPStatusCode']}."
+            }
         
     @error_handler
     def update_item(self, key: dict, new_values: dict):
@@ -115,8 +131,17 @@ class ObjectDynamodb:
             UpdateExpression=update_expression,
             ExpressionAttributeValues=expression_attribute_values
         )
-        return {"statusCode": 200,
-                "body": "updated"} 
+
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return {
+                "statusCode": 201,
+                "body": "Item successfully updated."
+            }
+        else:
+            return {
+                "statusCode": 500,
+                "body": f"Error updating item. DynamoDB returned status code {response['ResponseMetadata']['HTTPStatusCode']}."
+            }
 
     def update_sort_key(self, key: dict, new_item: dict):
         '''
@@ -143,8 +168,16 @@ class ObjectDynamodb:
         response = self.dynamo_db.transact_write_items(
             TransactItems=transact_items
         )
-        return {"statusCode": 200,
-                "body": "updated"} 
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return {
+                "statusCode": 201,
+                "body": "Item successfully updated."
+            }
+        else:
+            return {
+                "statusCode": 500,
+                "body": f"Error updating item. DynamoDB returned status code {response['ResponseMetadata']['HTTPStatusCode']}."
+            }
 
     @error_handler
     def append_to_list(self, key: dict, list_name: str, item: dict):
@@ -170,8 +203,16 @@ class ObjectDynamodb:
             },
             ReturnValues="UPDATED_NEW"
         )
-        return {"statusCode": 200,
-                "body": "updated"} 
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return {
+                "statusCode": 201,
+                "body": "Item successfully updated."
+            }
+        else:
+            return {
+                "statusCode": 500,
+                "body": f"Error updating item. DynamoDB returned status code {response['ResponseMetadata']['HTTPStatusCode']}."
+            }
     
     @error_handler
     def delete_from_list(self, key: dict, list_name: str, item: dict):
@@ -211,5 +252,13 @@ class ObjectDynamodb:
             }
         )
         
-        return {"statusCode": 200,
-                "body": "deleted"}
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return {
+                "statusCode": 200,
+                "body": "Item successfully deleted."
+            }
+        else:
+            return {
+                "statusCode": 500,
+                "body": f"Error deleting item. DynamoDB returned status code {response['ResponseMetadata']['HTTPStatusCode']}."
+            }

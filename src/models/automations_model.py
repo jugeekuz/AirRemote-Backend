@@ -19,9 +19,6 @@ class AutomationsModel(ObjectDynamodb):
         super().__init__(clients_table)
         
     def get_automations(self):
-
-        self.clean_expired_automations()
-
         return self.scan_items()
 
     @error_handler
@@ -136,14 +133,13 @@ class AutomationsModel(ObjectDynamodb):
 
         automations_response = self.get_automations()
 
-        time = datetime.now()
-
         if not check_response(automations_response):
             return automations_response
 
+        time = datetime.now()
         for automation in automations_response["body"]:
             automation_time = datetime.fromisoformat(automation['lastTimestamp'])
-            if (datetime.now() - automation_time > timedelta(seconds=40)) and int(automation["executedCounter"]) != 0:
+            if (time - automation_time > timedelta(seconds=40)) and int(automation["executedCounter"]) != 0:
                 expired_automations.append({"automationId": automation["automationId"]})
 
 

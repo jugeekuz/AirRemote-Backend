@@ -10,11 +10,7 @@ def handle(event, context):
 
     print(event)
 
-    remotes, clients, devices, requestpool, automations = RemotesModel(REMOTES_TABLE), ClientsModel(CLIENTS_TABLE), DevicesModel(DEVICES_TABLE), RequestPoolModel(REQUEST_POOL_TABLE), AutomationsModel(AUTOMATIONS_TABLE)
-
-    remotes = RemotesModel(REMOTES_TABLE)
-    devices = DevicesModel(DEVICES_TABLE)
-    automations = AutomationsModel(AUTOMATIONS_TABLE)
+    remotes, devices, requestpool, automations = RemotesModel(REMOTES_TABLE), DevicesModel(DEVICES_TABLE), RequestPoolModel(REQUEST_POOL_TABLE), AutomationsModel(AUTOMATIONS_TABLE)
 
     cmd_controller = CMDController(WSSAPIGATEWAYENDPOINT, None, requestpool, remotes, devices, automations)
 

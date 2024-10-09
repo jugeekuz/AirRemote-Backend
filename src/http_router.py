@@ -1,11 +1,12 @@
 import json
 import os
-from .models import RemotesModel, ClientsModel, DevicesModel, RequestPoolModel, AutomationsModel
+from .models import RemotesModel, ClientsModel, DevicesModel, RequestPoolModel, AutomationsModel, StatisticsModel
 from .controllers.websocket_controllers.cmd_controller import CMDController
 from .controllers.automation_controllers.automation_controller import create_automation
 from .controllers.automation_controllers.automation_controller import create_automation, delete_automation, set_automation_state
+from .controllers.cost_controllers.cost_controller import get_monthly_cost
 WSSAPIGATEWAYENDPOINT = os.getenv("WSSAPIGATEWAYENDPOINT")
-REMOTES_TABLE, CLIENTS_TABLE, DEVICES_TABLE, REQUEST_POOL_TABLE, AUTOMATIONS_TABLE = os.getenv("REMOTES_TABLE_NAME", ""), os.getenv("CLIENTS_TABLE_NAME", ""), os.getenv("IOT_DEVICES_TABLE_NAME", ""), os.getenv("REQUEST_POOL_TABLE_NAME", ""), os.getenv("AUTOMATIONS_TABLE_NAME", "")
+REMOTES_TABLE, CLIENTS_TABLE, DEVICES_TABLE, REQUEST_POOL_TABLE, AUTOMATIONS_TABLE, STATISTICS_TABLE = os.getenv("REMOTES_TABLE_NAME", ""), os.getenv("CLIENTS_TABLE_NAME", ""), os.getenv("IOT_DEVICES_TABLE_NAME", ""), os.getenv("REQUEST_POOL_TABLE_NAME", ""), os.getenv("AUTOMATIONS_TABLE_NAME", ""), os.getenv("STATISTICS_TABLE_NAME", "")
 AUTOMATIONS_FUNCTION_ARN = os.environ.get('AUTOMATIONS_FUNCTION_ARN')
 
 remotes, clients, devices, requestpool, automations = RemotesModel(REMOTES_TABLE), ClientsModel(CLIENTS_TABLE), DevicesModel(DEVICES_TABLE), RequestPoolModel(REQUEST_POOL_TABLE), AutomationsModel(AUTOMATIONS_TABLE)
@@ -13,6 +14,7 @@ remotes, clients, devices, requestpool, automations = RemotesModel(REMOTES_TABLE
 remotes = RemotesModel(REMOTES_TABLE)
 devices = DevicesModel(DEVICES_TABLE)
 automations = AutomationsModel(AUTOMATIONS_TABLE)
+statistics = StatisticsModel(STATISTICS_TABLE)
 
 def handle(event, context):
     body = event.get('body','')
@@ -48,6 +50,8 @@ def handle(event, context):
         'DELETE /api/automations/{automationId}': lambda : delete_automation(automations, {"automationId": query_params["automationId"]}),
         'POST /api/automations/{automationId}/state': lambda : set_automation_state(automations, {"automationId": query_params["automationId"]}, body["state"]),
         'POST /api/automations/{automationId}/start': lambda : cmd_controller.automation_execute({"automationId": query_params["automationId"]}),
+        'GET /api/costs': lambda : statistics.get_statistics()
+        # 'GET /api/costs': lambda : get_monthly_cost()
     }
 
     route_key = event["routeKey"]
