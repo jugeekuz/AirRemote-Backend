@@ -212,6 +212,10 @@ functions:
       - httpApi:
           path: /api/automations/{automationId}/start
           method: POST
+      - httpApi:
+          path: /api/automations/clean
+          method: POST
+          
       # COST API
       - httpApi:
           path: /api/costs

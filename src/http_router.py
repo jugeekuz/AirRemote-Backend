@@ -50,8 +50,8 @@ def handle(event, context):
         'DELETE /api/automations/{automationId}': lambda : delete_automation(automations, {"automationId": query_params["automationId"]}),
         'POST /api/automations/{automationId}/state': lambda : set_automation_state(automations, {"automationId": query_params["automationId"]}, body["state"]),
         'POST /api/automations/{automationId}/start': lambda : cmd_controller.automation_execute({"automationId": query_params["automationId"]}),
+        'POST /api/automations/clean': lambda : automations.clean_expired_automations(),
         'GET /api/costs': lambda : statistics.get_statistics()
-        # 'GET /api/costs': lambda : get_monthly_cost()
     }
 
     route_key = event["routeKey"]
