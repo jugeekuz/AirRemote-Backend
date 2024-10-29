@@ -9,12 +9,6 @@ class ClientsValidator(BaseValidator):
         '''
         if not isinstance(key, str):
             return False
-
-        # if len(key)%4 != 0:
-        #     return False
-        
-        # if not re.match(r'^[A-Za-z0-9+/\-]+={0,2}$', key):
-        #     return False
         
         return True
     
@@ -28,6 +22,18 @@ class ClientsValidator(BaseValidator):
         allowed_types = ['iot', 'client', None]
 
         return (device in allowed_types)
+    
+    def check_salt(self, salt: str):
+        if not isinstance(salt, str):
+            return False
+
+        return True
+    
+    def check_auth_token(self, token: str):
+        if not isinstance(token, str):
+            return False
+
+        return True
     
     def validate(self, items: dict, params: list=None):
         '''

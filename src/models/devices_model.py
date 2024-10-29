@@ -28,6 +28,8 @@ class DevicesModel(ObjectDynamodb):
 
         self.validator.validate(device, params=['macAddress', 
                                                 'connectionId',
+                                                'salt',
+                                                'hashToken',
                                                 'deviceName'])
         
         return self.add_item(device)

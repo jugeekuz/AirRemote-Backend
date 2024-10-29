@@ -5,9 +5,11 @@ from .controllers.websocket_controllers.cmd_controller import CMDController
 from .controllers.automation_controllers.automation_controller import create_automation
 from .controllers.automation_controllers.automation_controller import create_automation, delete_automation, set_automation_state
 from .controllers.cost_controllers.cost_controller import get_monthly_cost
+from .controllers.security_controllers.token_controller import get_device_token
 WSSAPIGATEWAYENDPOINT = os.getenv("WSSAPIGATEWAYENDPOINT")
 REMOTES_TABLE, CLIENTS_TABLE, DEVICES_TABLE, REQUEST_POOL_TABLE, AUTOMATIONS_TABLE, STATISTICS_TABLE = os.getenv("REMOTES_TABLE_NAME", ""), os.getenv("CLIENTS_TABLE_NAME", ""), os.getenv("IOT_DEVICES_TABLE_NAME", ""), os.getenv("REQUEST_POOL_TABLE_NAME", ""), os.getenv("AUTOMATIONS_TABLE_NAME", ""), os.getenv("STATISTICS_TABLE_NAME", "")
 AUTOMATIONS_FUNCTION_ARN = os.environ.get('AUTOMATIONS_FUNCTION_ARN')
+CORS_ORIGIN = os.getenv('CORS_ORIGIN')
 
 remotes, clients, devices, requestpool, automations = RemotesModel(REMOTES_TABLE), ClientsModel(CLIENTS_TABLE), DevicesModel(DEVICES_TABLE), RequestPoolModel(REQUEST_POOL_TABLE), AutomationsModel(AUTOMATIONS_TABLE)
 
@@ -51,14 +53,20 @@ def handle(event, context):
         'POST /api/automations/{automationId}/state': lambda : set_automation_state(automations, {"automationId": query_params["automationId"]}, body["state"]),
         'POST /api/automations/{automationId}/start': lambda : cmd_controller.automation_execute({"automationId": query_params["automationId"]}),
         'POST /api/automations/clean': lambda : automations.clean_expired_automations(),
-        'GET /api/costs': lambda : statistics.get_statistics()
+        'GET /api/costs': lambda : statistics.get_statistics(),
+        'GET /api/deviceToken': lambda : get_device_token(),
     }
 
-    route_key = event["routeKey"]
-    
+    route_key = event["httpMethod"] + ' ' + event['resource']
+    cors_headers = {
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': '*',
+        'Access-Control-Allow-Origin': CORS_ORIGIN
+    }
     return {
         'statusCode': 200,
-        'headers': {'Content-Type': 'application/json'},
+        'headers': cors_headers,
         'body': json.dumps(endpoint_router[route_key](), indent=4)
     }
+
 

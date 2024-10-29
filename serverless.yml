@@ -1,15 +1,31 @@
-service: aws-remote-websocket-serverless
+service: air-remote-backend
 
 frameworkVersion: '3'
+
+plugins:
+  - serverless-python-requirements
+  - serverless-scriptable-plugin
+
+custom:
+  configFilePath: './config.json'
+  corsOrigin: ${file(${self:custom.configFilePath}):corsOrigin, "https://localhost:3000"}
+  scriptable:
+    hooks:
+      before:package:createDeploymentArtifacts: "node ./scripts/predeploy.js" 
+      after:deploy:deploy: "node ./scripts/createEnv.js"
 
 provider:
   name: aws
   runtime: python3.12
   stage: ${opt:stage, 'dev'}
   region: eu-central-1
-  timeout: 60
-  httpApi:
-      cors: true
+  timeout: 30
+  apiGateway:
+    # restApi:
+    #   minimumCompressionSize: 1024 # Optional: Adjust as needed
+    #   shouldStartNameWithService: true
+    restApiResources:
+      CORS: true
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -20,6 +36,12 @@ provider:
   iam:
     role:
       statements:
+        - Effect: Allow
+          Action:
+            - cognito-idp:AdminCreateUser
+            - cognito-idp:AdminSetUserPassword
+            - cognito-idp:AdminInitiateAuth
+          Resource: "*"
         - Effect: "Allow"
           Action:
             - "events:PutRule"
@@ -123,6 +145,8 @@ provider:
     REQUEST_POOL_TABLE_NAME: ${self:provider.stage}RequestPool
     AUTOMATIONS_TABLE_NAME: ${self:provider.stage}Automations
     STATISTICS_TABLE_NAME: ${self:provider.stage}Statistics
+    COGNITO_USER_POOL_NAME: ${self:provider.stage}UserPool
+    COGNITO_USER_POOL_CLIENT_NAME: ${self:provider.stage}UserPoolClient
     WSSAPIGATEWAYENDPOINT:
       Fn::Join:
         - ""
@@ -131,9 +155,80 @@ provider:
           - ".execute-api."
           - Ref: AWS::Region
           - ".amazonaws.com/${sls:stage}"
-
+    USER_POOL_ID: { Ref: CognitoUserPool }
+    CLIENT_ID: { Ref: CognitoUserPoolClient }
+    CORS_ORIGIN: ${self:custom.corsOrigin}
 
 functions:
+  signupHandler:
+    handler: src/auth/signup_handler.handle
+    events:
+      - http:
+            path: auth/signup
+            method: post
+            cors:  
+              origin: ${self:custom.corsOrigin}
+              headers:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                  - X-Amz-User-Agent
+              allowCredentials: true
+
+  loginHandler:
+    handler: src/auth/login_handler.handle
+    events:
+      - http:
+            path: auth/login
+            method: post
+            cors:  
+              origin: ${self:custom.corsOrigin}
+              headers:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                  - X-Amz-User-Agent
+              allowCredentials: true
+
+  refreshHandler:
+    handler: src/auth/refresh_handler.handle
+    events:
+      - http:
+            path: auth/refresh-token
+            method: post
+            cors:  
+              origin: ${self:custom.corsOrigin}
+              headers:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                  - X-Amz-User-Agent
+              allowCredentials: true
+
+  logoutHandler:
+    handler: src/auth/logout_handler.handle
+    events:
+      - http:
+            path: auth/logout
+            method: post
+            cors:  
+              origin: ${self:custom.corsOrigin}
+              headers:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                  - X-Amz-User-Agent
+              allowCredentials: true
+
+
   automationsHandler:
     handler: src/automations_handler.handle  
 
@@ -155,71 +250,370 @@ functions:
     handler: src/http_router.handle
     events:
       # REMOTES
-      - httpApi:
+      - http:
           path: /api/remotes
           method: GET
-      - httpApi:
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+      - http:
           path: /api/remotes
-          method: POST          
-      - httpApi:
+          method: POST 
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true     
+
+      - http:
           path: /api/remotes/{remoteName}
           method: GET
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/remotes/{remoteName}
           method: DELETE
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:   
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
           
-      - httpApi:
+      - http:
           path: /api/remotes/{remoteName}/buttons
           method: POST
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/remotes/{remoteName}/buttons/{buttonName}
           method: DELETE
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
       # DEVICES
-      - httpApi:
+      - http:
           path: /api/devices
           method: GET
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+      - http:
           path: /api/devices
           method: POST
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/devices/{macAddress}
           method: GET
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/devices/{macAddress}
           method: PUT
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/devices/{macAddress}
           method: DELETE
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/devices/connected
           method: GET
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
       # AUTOMATIONS
-      - httpApi:
+      - http:
           path: /api/automations
           method: GET
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/automations
           method: POST
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/automations/{automationId}
           method: GET
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/automations/{automationId}
           method: DELETE
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors: 
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true
+      - http:
           path: /api/automations/{automationId}/state
           method: POST
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/automations/{automationId}/start
           method: POST
-      - httpApi:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
           path: /api/automations/clean
           method: POST
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
           
       # COST API
-      - httpApi:
+      - http:
           path: /api/costs
           method: GET
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      
+      # TOKEN 
+      - http:
+          path: /api/deviceToken
+          method: GET
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true
+            
     environment:
       AUTOMATIONS_FUNCTION_ARN: 
         Fn::GetAtt: 
@@ -233,11 +627,6 @@ functions:
           description: "Triggers the Lambda function at the end of each month to calculate monthly cost"
           rate: cron(0 0 L * ? *) 
           enabled: true
-             
-
-
-plugins:
-  - serverless-python-requirements
 
 resources:
   Resources:
@@ -325,3 +714,58 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
     
+    CognitoUserPool:
+      Type: "AWS::Cognito::UserPool"
+      Properties:
+        MfaConfiguration: OFF
+        UserPoolName: ${self:provider.environment.COGNITO_USER_POOL_NAME}
+        UsernameAttributes:
+          - email
+        Schema:
+          - Name: nickname
+            AttributeDataType: String
+            Mutable: true
+            Required: false
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 6
+            RequireLowercase: False
+            RequireNumbers: True
+            RequireSymbols: False
+            RequireUppercase: False
+
+    CognitoUserPoolClient:
+      Type: "AWS::Cognito::UserPoolClient"
+      Properties:
+        ClientName: ${self:provider.environment.COGNITO_USER_POOL_CLIENT_NAME}
+        GenerateSecret: False
+        UserPoolId:
+          Ref: CognitoUserPool
+        AccessTokenValidity: 5
+        IdTokenValidity: 5
+        RefreshTokenValidity: 30  
+        TokenValidityUnits:
+          AccessToken: minutes
+          IdToken: minutes
+          RefreshToken: days
+        ExplicitAuthFlows:
+          - "ALLOW_CUSTOM_AUTH"
+          - "ALLOW_ADMIN_USER_PASSWORD_AUTH"
+          - "ALLOW_REFRESH_TOKEN_AUTH"
+          - "ALLOW_USER_SRP_AUTH"
+        SupportedIdentityProviders:
+          - COGNITO
+
+    ApiGatewayAuthorizer:
+      DependsOn:
+        - ApiGatewayRestApi
+        - CognitoUserPool
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: cognito-authorizer
+        IdentitySource: method.request.header.Authorization
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Type: COGNITO_USER_POOLS
+        ProviderARNs:
+          - Fn::GetAtt: [CognitoUserPool, Arn]
