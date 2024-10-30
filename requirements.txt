@@ -1,2 +1,4 @@
 aws_lambda_typing
 boto3
+pyjwt
+python-dotenv

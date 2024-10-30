@@ -17,7 +17,7 @@ class DevicesValidator(BaseValidator):
         '''
         Checks if `key` is in valid format by being `str` and in Base64 format.
         '''
-        if not isinstance(key, str):
+        if not isinstance(key, str) and not key is None:
             return False
 
         # if len(key)%4 != 0:
@@ -48,10 +48,30 @@ class DevicesValidator(BaseValidator):
 
         return re.match(pattern, item)
     
+    def check_salt(self, salt: str):
+        if not isinstance(salt, str):
+            return False
+
+        # if len(salt) != 16:
+        #     return False
+        
+        return True
+    
+    def check_hash_token(self, hash_token: str):
+        if not isinstance(hash_token, str):
+            return False
+        
+        # if len(hash_token) != 16:
+        #     return False
+        
+        return True
+    
     def validate(self, items: dict, params: list):
         check_attributes = {
             'deviceType': self.check_device_type,
             'deviceName': self.check_device_name,
+            'salt': self.check_salt,
+            'hashToken': self.check_hash_token,
             'macAddress': self.check_mac,
             'connectionId': self.check_connection_id
         }

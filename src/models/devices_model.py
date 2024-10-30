@@ -2,7 +2,7 @@ from .mixins import ObjectDynamodb
 from .validators import DevicesValidator
 from ..utils.helpers import error_handler, check_response
 from ..utils.errors import ResponseError
-
+from ..controllers.security_controllers.utils import generate_salt, hash_token
 class DevicesModel(ObjectDynamodb):
     def __init__(self, devices_table: str):
 
@@ -11,11 +11,6 @@ class DevicesModel(ObjectDynamodb):
         super().__init__(devices_table)
 
     def get_devices(self, device: dict = None):
-        '''
-        Method that lists all registered devices.
-        :param dict `device`: Device to search for or None to search all
-        :returns : Response 200 containing devices in body or Response 500 error.
-        '''
         if device:
             self.validator.validate(device, params=['macAddress'])
 
@@ -23,8 +18,23 @@ class DevicesModel(ObjectDynamodb):
         else:      
             return self.scan_items()
 
-    
-    def add_device(self, device: dict):
+    @error_handler
+    def add_unknown_device(self, item: dict):
+        '''
+        This method creates a temporary device whose MAC address is unknown yet.
+        :param dict `item`: Dictionary containing key `deviceName` and `token`.
+        :returns : Response 200 or Error
+        '''
+
+        device = {
+            "macAddress": "FF:FF:FF:FF:FF:FF",
+            "connectionId": None,
+            "salt": generate_salt(),
+            "deviceName": item["deviceName"]
+        }
+
+        device["hashToken"] = hash_token(item["token"], device["salt"])     
+        
 
         self.validator.validate(device, params=['macAddress', 
                                                 'connectionId',
@@ -34,6 +44,46 @@ class DevicesModel(ObjectDynamodb):
         
         return self.add_item(device)
 
+    @error_handler
+    def add_device(self, item: dict):
+        '''
+        This method searches if a matching temporary MAC-less device entry exists and replaces it with the new MAC.
+        :param dict `item`: Dictionary containing key `macAddress` and `token`.
+        :returns : Response 200 or Error
+        '''
+        
+        response = self.get_item({"macAddress": "FF:FF:FF:FF:FF:FF"})
+
+        if not check_response(response):
+            return {
+                "statusCode": 400,
+                "body": "Device doesn't exist."
+            }
+        
+        saved_entry = response['body']
+
+        hashed_token = hash_token(item["token"], saved_entry["salt"])
+
+        if hashed_token != saved_entry["hashToken"]:
+            return {
+                "statusCode": 400,
+                "body": "Token provided doesn't match configured one."
+            }
+        
+        _ = self.delete_device({"macAddress": "FF:FF:FF:FF:FF:FF"})
+        
+        device = saved_entry
+        device['macAddress'] = item['macAddress']
+        
+        self.validator.validate(device, params=['macAddress', 
+                                                'connectionId',
+                                                'salt',
+                                                'hashToken',
+                                                'deviceName'])
+        
+        return self.add_item(device)
+
+    @error_handler
     def delete_device(self, device: dict):
         
         self.validator.validate(device, params=['macAddress'])
@@ -97,24 +147,7 @@ class DevicesModel(ObjectDynamodb):
 
 
     @error_handler
-    def set_device_status(self, connection: dict, query_params: dict):
-        '''
-        Method used to handle messages from devices declaring their device type and their MAC address potentially.
-
-        The dict `query_params` should contain key-value pairs in one of two formats:
-        {
-            "deviceType": "iot",
-            "macAddress": "00:B0:D0:63:C2:26"
-        }
-        - OR -
-        {
-            "deviceType": "someOtherType"
-        }
-
-        :param str `connection_id`: The connection ID of the connection we received message from.
-        :param dict `query_params`: The query_params of the request sent to API Gateway
-        :return : Response 201 or Response 500
-        '''
+    def set_device_status(self, connection: dict, query_params: dict): 
         
         if query_params["deviceType"] == "iot":
 
@@ -130,11 +163,10 @@ class DevicesModel(ObjectDynamodb):
                 response = self.update_item(mac_address, connection)
 
             else:
-
-                response = self.add_item(item={
-                    **mac_address,
-                    **connection,
-                    "deviceName": None,
+                
+                response = self.add_device({
+                    "macAddress": query_params["macAddress"],
+                    "token": query_params["token"]
                 })
 
         return response

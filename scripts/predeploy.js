@@ -1,5 +1,6 @@
 const readline = require("readline");
 const fs = require("fs");
+const { generateJWTSecret } = require('./createSecret');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -38,7 +39,8 @@ Do you have the frontend URL? [Y/n]:`;
 rl.question(message, (answer) => {
   if (answer.toLowerCase() === "n") {
     
-    // Write corsOrigin to a JSON file that serverless.yml can read
+    generateJWTSecret();
+
     const config = { corsOrigin };
     const filePath = "./config.json";
     fs.writeFileSync(filePath, JSON.stringify(config, null, 2));

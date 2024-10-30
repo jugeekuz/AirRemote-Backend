@@ -1,6 +1,11 @@
 import os
-import hashlib
+import sys
+sys.path.insert(0, 'src/vendor')
+import json
 import base64
+import hashlib
+import datetime
+import jwt
 
 def generate_token(length=32):
     """Generates a cryptographically secure random token."""
@@ -22,3 +27,16 @@ def hash_token(token, salt):
     token_hash = hash_object.hexdigest()
     
     return token_hash
+
+def generate_jwt(sub, secret, expiry_minutes=1):
+    """Generates JWT to be provided to frontend for authorizing Websocket Requests"""
+    payload = {
+        "sub": sub,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=expiry_minutes)  
+    }
+    return jwt.encode(payload, secret, algorithm="HS256")
+    
+def validate_jwt(token, secret):
+
+    return jwt.decode(token, secret, algorithms=["HS256"])
+    

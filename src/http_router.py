@@ -5,7 +5,7 @@ from .controllers.websocket_controllers.cmd_controller import CMDController
 from .controllers.automation_controllers.automation_controller import create_automation
 from .controllers.automation_controllers.automation_controller import create_automation, delete_automation, set_automation_state
 from .controllers.cost_controllers.cost_controller import get_monthly_cost
-from .controllers.security_controllers.token_controller import get_device_token
+from .controllers.security_controllers.token_controller import get_device_token, get_websocket_jwt
 WSSAPIGATEWAYENDPOINT = os.getenv("WSSAPIGATEWAYENDPOINT")
 REMOTES_TABLE, CLIENTS_TABLE, DEVICES_TABLE, REQUEST_POOL_TABLE, AUTOMATIONS_TABLE, STATISTICS_TABLE = os.getenv("REMOTES_TABLE_NAME", ""), os.getenv("CLIENTS_TABLE_NAME", ""), os.getenv("IOT_DEVICES_TABLE_NAME", ""), os.getenv("REQUEST_POOL_TABLE_NAME", ""), os.getenv("AUTOMATIONS_TABLE_NAME", ""), os.getenv("STATISTICS_TABLE_NAME", "")
 AUTOMATIONS_FUNCTION_ARN = os.environ.get('AUTOMATIONS_FUNCTION_ARN')
@@ -38,7 +38,7 @@ def handle(event, context):
                                                                                                  "buttonName" : query_params["buttonName"]}),
         #DEVICE ENDPOINTS
         'GET /api/devices': lambda : devices.get_devices(),
-        'POST /api/devices': lambda : devices.add_device(body),
+        'POST /api/devices': lambda : devices.add_unknown_device(body),
         'GET /api/devices/{macAddress}': lambda : devices.get_devices({"macAddress" : query_params["macAddress"]}),
         'PUT /api/devices/{macAddress}': lambda : devices.set_device_name({"macAddress" : query_params["macAddress"]},
                                                                           {"deviceName": body["deviceName"]}),
@@ -55,7 +55,12 @@ def handle(event, context):
         'POST /api/automations/clean': lambda : automations.clean_expired_automations(),
         'GET /api/costs': lambda : statistics.get_statistics(),
         'GET /api/deviceToken': lambda : get_device_token(),
+
+        'GET /api/websocketJwt': lambda : get_websocket_jwt(event['requestContext']['identity']['sourceIp']),
+        'POST /api/devices/deleteme': lambda : devices.add_device(body),
+
     }
+    print(f"http method = {event["httpMethod"]}")
 
     route_key = event["httpMethod"] + ' ' + event['resource']
     cors_headers = {
@@ -63,6 +68,7 @@ def handle(event, context):
         'Access-Control-Allow-Methods': '*',
         'Access-Control-Allow-Origin': CORS_ORIGIN
     }
+
     return {
         'statusCode': 200,
         'headers': cors_headers,
