@@ -318,7 +318,7 @@ functions:
                 - X-Amz-Security-Token
                 - X-Amz-User-Agent
             allowCredentials: true 
-          
+            
       - http:
           path: /api/remotes/{remoteName}/buttons
           method: POST
@@ -387,6 +387,24 @@ functions:
                 - X-Amz-Security-Token
                 - X-Amz-User-Agent
             allowCredentials: true 
+      #delete endpoint
+      - http:
+          path: /api/devices/deleteme
+          method: POST
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
       - http:
           path: /api/devices/{macAddress}
           method: GET
@@ -438,6 +456,18 @@ functions:
                 - X-Amz-Security-Token
                 - X-Amz-User-Agent
             allowCredentials: true 
+      # - http:
+      #     path: /api/devices/{macAddress}
+      #     method: OPTIONS
+      #     cors:  
+      #       origin: ${self:custom.corsOrigin}
+      #       headers:
+      #           - Content-Type
+      #           - Authorization
+      #           - X-Amz-Date
+      #           - X-Api-Key
+      #           - X-Amz-Security-Token
+      #           - X-Amz-User-Agent
       - http:
           path: /api/devices/connected
           method: GET
@@ -613,6 +643,23 @@ functions:
                 - X-Amz-Security-Token
                 - X-Amz-User-Agent
             allowCredentials: true
+      - http:
+          path: /api/websocketJwt
+          method: GET
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true
             
     environment:
       AUTOMATIONS_FUNCTION_ARN: 
@@ -769,3 +816,31 @@ resources:
         Type: COGNITO_USER_POOLS
         ProviderARNs:
           - Fn::GetAtt: [CognitoUserPool, Arn]
+
+    ApiGatewayGlobalOptions:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        AuthorizationType: NONE
+        HttpMethod: OPTIONS
+        ResourceId:
+          Fn::GetAtt:
+            - ApiGatewayRestApi
+            - RootResourceId
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Integration:
+          Type: MOCK
+          IntegrationResponses:
+            - StatusCode: 200
+              ResponseParameters:
+                method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
+                method.response.header.Access-Control-Allow-Methods: "'OPTIONS,GET,POST,PUT,DELETE,PATCH'"
+                method.response.header.Access-Control-Allow-Origin: "'${self:custom.corsOrigin}'"
+          RequestTemplates:
+            application/json: "{\"statusCode\": 200}"
+        MethodResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: true
+              method.response.header.Access-Control-Allow-Methods: true
+              method.response.header.Access-Control-Allow-Origin: true
