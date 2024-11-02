@@ -131,7 +131,7 @@ class RemotesModel(ObjectDynamodb):
         self.validator.validate(remote, params=['remoteName'])
 
         remote_response = self.get_remotes(remote)
-        print(remote_response)
+
         if not check_response(remote_response):
             return remote_response
         

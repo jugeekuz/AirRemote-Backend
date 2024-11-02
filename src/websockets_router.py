@@ -82,8 +82,7 @@ def handle(event, context):
     cmd_controller = CMDController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model, remotes_model, devices_model, automations_model)
     ack_controller = ACKController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model, remotes_model, devices_model, automations_model)
     error_controller = ErrorController(WSSAPIGATEWAYENDPOINT, connection_id, requestpool_model, automations_model)
-    print("hey")
-    print(event)
+
     websocket_router = {
         '$connect': lambda: connect(connection, query_params),
         '$disconnect': lambda: disconnect(connection),

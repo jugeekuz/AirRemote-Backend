@@ -66,7 +66,7 @@ def handle(event, context):
             },
             "body": json.dumps(response_data)
         }
-        # print(response)
+
         return response
 
     except cognito.exceptions.NotAuthorizedException:
