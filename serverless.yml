@@ -196,7 +196,7 @@ functions:
 
   refreshHandler:
     handler: src/auth/refresh_handler.handle
-    provisionedConcurrency: 3
+    provisionedConcurrency: 1
     memorySize: 512
     events:
       - http:
@@ -236,7 +236,6 @@ functions:
 
   websocketHandler:
     handler: src/websockets_router.handle
-    provisionedConcurrency: 2
     events:
       - websocket:
           route: $connect
@@ -251,7 +250,7 @@ functions:
 
   httpDataHandler:
     handler: src/http_router.handle
-    provisionedConcurrency: 6
+    provisionedConcurrency: 1
     memorySize: 512
     events:
       # REMOTES
