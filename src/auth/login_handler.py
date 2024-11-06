@@ -43,6 +43,7 @@ def handle(event, context):
         refresh_token = response['AuthenticationResult']['RefreshToken']
         expires_in = response['AuthenticationResult']['ExpiresIn']
         expiration_time = datetime.utcnow() + timedelta(days=30)
+
         cookie = SimpleCookie()
         cookie['refreshToken'] = refresh_token
         cookie['refreshToken']['httponly'] = True
@@ -53,8 +54,7 @@ def handle(event, context):
         response_data = {
             "message": "Login successful",
             "access_token": access_token,
-            "id_token": id_token,
-            "username": email
+            "id_token": id_token
         }
 
         response = {

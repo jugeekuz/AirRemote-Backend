@@ -13,7 +13,7 @@ def handle(event, context):
 
         body = json.loads(event['body'])
         email = body.get('email')
-        nickname = body.get('nickname', "")  
+        nickname = body.get('nickname')  
         password = body.get('password')
         USER_POOL_ID = os.getenv('USER_POOL_ID')
 
