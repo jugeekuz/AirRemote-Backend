@@ -35,13 +35,27 @@ class RemotesModel(ObjectDynamodb):
     @error_handler
     def add_remote(self, remote: dict):
 
+        response = self.get_remotes()
+        if response['statusCode'] != 200:
+            return {
+                'statusCode': 500,
+                'body': 'Error while retrieving remotes.'
+            }
+        
+        new_order_index = str(len(response["body"]))
+
         button_clicks = {"buttonClicks": "0"}
-        remote = {**remote, **button_clicks}
+        remote = {
+            **remote, 
+            **button_clicks,
+            "orderIndex": new_order_index
+            }
 
         self.validator.validate(remote, params=['remoteName', 
                                                 'category',
                                                 'macAddress', 
                                                 'buttonClicks',
+                                                'orderIndex',
                                                 'buttons'])
         
         return self.add_item(remote)

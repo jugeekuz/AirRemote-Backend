@@ -35,6 +35,15 @@ class AutomationsModel(ObjectDynamodb):
 
         automation_id = ''.join(random.choices(string.ascii_letters + string.digits, k=3)) + '_' + str(time.timestamp())        
 
+        response = self.get_automations()
+        if response['statusCode'] != 200:
+            return {
+                'statusCode': 500,
+                'body': 'Error while retrieving automations.'
+            }
+        
+        new_order_index = str(len(response["body"]))
+
         attributes = {
                         "automationId": automation_id,
                         "lastTimestamp": time.isoformat(),
@@ -42,7 +51,8 @@ class AutomationsModel(ObjectDynamodb):
                         "totalButtons": str(len(automation['buttonsList'])),
                         "errorMessage": "",
                         "runError": "False",
-                        "automationState": "ENABLED"
+                        "automationState": "ENABLED",
+                        "orderIndex": new_order_index
                      }
         automation = { 
                         **automation, 
@@ -60,7 +70,8 @@ class AutomationsModel(ObjectDynamodb):
                                                     "totalButtons",
                                                     "errorMessage",
                                                     "runError",
-                                                    "automationState"
+                                                    "automationState",
+                                                    "orderIndex"
                                                     ])
 
         response = self.add_item(automation)

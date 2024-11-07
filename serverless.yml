@@ -286,7 +286,25 @@ functions:
                 - X-Api-Key
                 - X-Amz-Security-Token
                 - X-Amz-User-Agent
-            allowCredentials: true     
+            allowCredentials: true
+
+      - http:
+          path: /api/remotes/sort
+          method: POST 
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true
 
       - http:
           path: /api/remotes/{remoteName}
@@ -325,6 +343,23 @@ functions:
             
       - http:
           path: /api/remotes/{remoteName}/buttons
+          method: POST
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true 
+      - http:
+          path: /api/remotes/{remoteName}/buttons/sort
           method: POST
           authorizer:
             type: COGNITO_USER_POOLS
@@ -391,6 +426,23 @@ functions:
                 - X-Amz-Security-Token
                 - X-Amz-User-Agent
             allowCredentials: true 
+      - http:
+          path: /api/devices/sort
+          method: POST
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true
       #delete endpoint
       - http:
           path: /api/devices/deleteme
@@ -509,6 +561,23 @@ functions:
             allowCredentials: true 
       - http:
           path: /api/automations
+          method: POST
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true
+      - http:
+          path: /api/automations/sort
           method: POST
           authorizer:
             type: COGNITO_USER_POOLS

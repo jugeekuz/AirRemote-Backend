@@ -179,6 +179,18 @@ class AutomationsValidator(BaseValidator):
             return False
         
         return True
+    
+    def check_order_index(self, order_index: str):
+        if not isinstance(order_index, str):
+            return False
+        
+        try:
+           if int(order_index) < 0:
+               return False
+        except:
+            return False
+        
+        return True
 
     def validate(self, items: dict, params: list):
         check_attributes = {
@@ -193,7 +205,8 @@ class AutomationsValidator(BaseValidator):
             'totalButtons': self.check_button_name,
             'errorMessage': self.check_error_message,
             'automationState': self.check_state,
-            'runError': self.check_run_error
+            'runError': self.check_run_error,
+            'orderIndex': self.check_order_index
         }
         super().validate(check_attributes, items, params=params)
 

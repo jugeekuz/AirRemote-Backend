@@ -35,11 +35,26 @@ class DevicesModel(ObjectDynamodb):
 
         device["hashToken"] = hash_token(item["token"], device["salt"])     
         
+        response = self.get_devices()
+        if response['statusCode'] != 200:
+            return {
+                'statusCode': 500,
+                'body': 'Error while retrieving devices.'
+            }
+        
+        new_order_index = str(len(response["body"]))
+
+        for item in response["body"]:
+            if item["macAddress"] == "FF:FF:FF:FF:FF:FF":
+                new_order_index = str(len(response["body"])) - 1
+
+        device['orderIndex'] = new_order_index
 
         self.validator.validate(device, params=['macAddress', 
                                                 'connectionId',
                                                 'salt',
                                                 'hashToken',
+                                                'orderIndex',
                                                 'deviceName'])
         
         return self.add_item(device)
@@ -78,9 +93,10 @@ class DevicesModel(ObjectDynamodb):
         self.validator.validate(device, params=['macAddress', 
                                                 'connectionId',
                                                 'salt',
+                                                'orderIndex',
                                                 'hashToken',
                                                 'deviceName'])
-        
+
         return self.add_item(device)
 
     @error_handler

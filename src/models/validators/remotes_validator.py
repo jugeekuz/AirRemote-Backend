@@ -134,6 +134,18 @@ class RemotesValidator(BaseValidator):
             return False
         return True
     
+    def check_order_index(self, order_index: str):
+        if not isinstance(order_index, str):
+            return False
+        
+        try:
+           if int(order_index) < 0:
+               return False
+        except:
+            return False
+        
+        return True
+
     def validate(self, items: dict, params: list):
         check_attributes = {
             'remoteName': self.check_remote_name,
@@ -145,6 +157,7 @@ class RemotesValidator(BaseValidator):
             'buttonName': self.check_button_name,
             'buttonCode': self.check_button_code,
             'buttonClicks': self.check_button_clicks,
-            'buttonState': self.check_button_state
+            'buttonState': self.check_button_state,
+            'orderIndex': self.check_order_index
         }
         super().validate(check_attributes, items, params=params)

@@ -65,6 +65,17 @@ class DevicesValidator(BaseValidator):
         #     return False
         
         return True
+    def check_order_index(self, order_index: str):
+        if not isinstance(order_index, str):
+            return False
+        
+        try:
+           if int(order_index) < 0:
+               return False
+        except:
+            return False
+        
+        return True
     
     def validate(self, items: dict, params: list):
         check_attributes = {
@@ -73,6 +84,7 @@ class DevicesValidator(BaseValidator):
             'salt': self.check_salt,
             'hashToken': self.check_hash_token,
             'macAddress': self.check_mac,
-            'connectionId': self.check_connection_id
+            'connectionId': self.check_connection_id,
+            'orderIndex': self.check_order_index
         }
         super().validate(check_attributes, items, params=params)

@@ -31,16 +31,19 @@ def handle(event, context):
         #REMOTE ENDPOINTS
         'GET /api/remotes': lambda : remotes.get_remotes(),
         'POST /api/remotes': lambda: remotes.add_remote(body),
+        'POST /api/remotes/sort': lambda: remotes.rearrange_items(body['newOrder'], 'remoteName'),
         'GET /api/remotes/{remoteName}': lambda : remotes.get_remotes({"remoteName" : unquote(query_params["remoteName"])}),
         'DELETE /api/remotes/{remoteName}': lambda : remotes.delete_remote({"remoteName" : unquote(query_params["remoteName"])}),
         'POST /api/remotes/{remoteName}/buttons': lambda: remotes.add_button({"remoteName" : unquote(query_params["remoteName"]),
                                                                               "buttonName" : body["buttonName"],
-                                                                              "buttonCode" : body["buttonCode"]}),                                                                        
+                                                                              "buttonCode" : body["buttonCode"]}),
+        'POST /api/remotes/{remoteName}/buttons/sort': lambda: remotes.rearrange_list({"remoteName" : unquote(query_params["remoteName"])}, 'buttons', body['newOrder']),                                                 
         'DELETE /api/remotes/{remoteName}/buttons/{buttonName}': lambda : remotes.delete_button({"remoteName" : unquote(query_params["remoteName"]),
                                                                                                  "buttonName" : unquote(query_params["buttonName"])}),
         #DEVICE ENDPOINTS
         'GET /api/devices': lambda : devices.get_devices(),
         'POST /api/devices': lambda : devices.add_unknown_device(body),
+        'POST /api/devices/sort': lambda : devices.rearrange_items(body['newOrder'], "macAddress"),
         'GET /api/devices/{macAddress}': lambda : devices.get_devices({"macAddress" : unquote(query_params["macAddress"])}),
         'PUT /api/devices/{macAddress}': lambda : devices.set_device_name({"macAddress" : unquote(query_params["macAddress"])},
                                                                           {"deviceName": body["deviceName"]}),
@@ -51,6 +54,7 @@ def handle(event, context):
         'GET /api/automations': lambda : automations.get_automations(),
         'GET /api/automations/{automationId}': lambda : automations.get_automation({"automationId": unquote(query_params["automationId"])}),
         'POST /api/automations': lambda : create_automation(automations, AUTOMATIONS_FUNCTION_ARN, body),
+        'POST /api/automations/sort': lambda : automations.rearrange_items(body['newOrder'], 'automationId'),
         'DELETE /api/automations/{automationId}': lambda : delete_automation(automations, {"automationId": unquote(query_params["automationId"])}),
         'POST /api/automations/{automationId}/state': lambda : set_automation_state(automations, {"automationId": unquote(query_params["automationId"])}, body["state"]),
         'POST /api/automations/{automationId}/start': lambda : cmd_controller.automation_execute({"automationId": unquote(query_params["automationId"])}),
@@ -75,5 +79,3 @@ def handle(event, context):
         'headers': cors_headers,
         'body': json.dumps(endpoint_router[route_key](), indent=4)
     }
-
-

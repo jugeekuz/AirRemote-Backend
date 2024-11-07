@@ -142,7 +142,7 @@ class ObjectDynamodb:
                 "statusCode": 500,
                 "body": f"Error updating item. DynamoDB returned status code {response['ResponseMetadata']['HTTPStatusCode']}."
             }
-
+    @error_handler
     def update_sort_key(self, key: dict, new_item: dict):
         '''
         Method used to update attributes of the table used as a sort key, by first deleting and then placing `new_item` in place of it.
@@ -261,4 +261,127 @@ class ObjectDynamodb:
             return {
                 "statusCode": 500,
                 "body": f"Error deleting item. DynamoDB returned status code {response['ResponseMetadata']['HTTPStatusCode']}."
+            }
+        
+    @error_handler
+    def rearrange_items(self, indices_list: list, primary_key_field: str):
+        '''
+        Function that takes as input a list of indices and rearranges the order of items in the table,
+        changing the `orderIndex` fields to new values by performing batch write.
+        :param list `indices_list`: List of indices representing new order of items.
+        :param str `primary_key_field`: Primary key name of the table.
+        :return : Response 200 or Response 500 error.
+        '''
+
+        response = self.scan_items()
+
+        if not check_response(response):
+            return {
+                "statusCode": 500,
+                "body": "Error while retrieving items."
+            }
+
+        items = response['body']
+
+        if 'orderIndex' not in items[0]:
+            return {
+                "statusCode": 400,
+                "body": "Table is not sortable."
+            }
+
+        if len(items) != len(indices_list) or set(indices_list) != set(range(0,len(items))):
+            return {
+                "statusCode": 400,
+                "body": "Indices list is invalid."
+            }
+        indices_list = [str(item) for item in indices_list]
+
+        items_to_update = []
+        for item, new_order_index in zip(items, indices_list):
+            if item['orderIndex'] == new_order_index:
+                continue
+            item_to_update = {
+                "Key": {primary_key_field: item[primary_key_field]},
+                "Item": {":orderIndex": new_order_index},
+            }
+            items_to_update.append(item_to_update)
+        
+        if len(items_to_update) == 0:
+            return {
+                "statusCode": 400,
+                "body": "Invalid request, no items to rearrange."
+            }
+        transaction_items = [
+            {
+                'Update': {
+                    'TableName': self.table,
+                    'Key': serialize_item(item["Key"]),
+                    'UpdateExpression': "SET orderIndex = :orderIndex",
+                    'ExpressionAttributeValues': serialize_item(item["Item"]),
+                }
+            }
+            for item in items_to_update
+        ]
+        
+        response = self.dynamo_db.transact_write_items(
+            TransactItems=transaction_items
+        )
+
+        if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+            return {
+                "statusCode": 200,
+                "body": "Items rearranged successfully."
+            }
+        else :
+            return {
+                "statusCode": 500,
+                "body": "Unexpected error while rearranging items."
+            }
+
+
+    @error_handler
+    def rearrange_list(self, key: dict, list_name: str, new_order: list):
+        key = serialize_item(key)
+        
+        response = self.dynamo_db.get_item(
+            TableName=self.table,
+            Key=key
+        )            
+        if not "Item" in response or not response["Item"]:
+            return {"statusCode": 404,
+                    "body": []}        
+        
+        items = deserialize_list(response['Item'][list_name])
+
+        if len(items) != len(new_order) or set(new_order) != set(range(0,len(items))):
+            return {
+                "statusCode": 400,
+                "body": "Indices list is invalid."
+            }
+        
+        new_list = [items[i] for i in new_order]
+        
+        new_obj_list = serialize_list(new_list)
+
+        response = self.dynamo_db.update_item(
+            TableName=self.table,
+            Key=key,
+            UpdateExpression='SET #lst = :val',
+            ExpressionAttributeNames={
+                "#lst": list_name,
+            },
+            ExpressionAttributeValues={
+                ':val': new_obj_list
+            }
+        )
+        
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return {
+                "statusCode": 200,
+                "body": "List Successfully Rearranged."
+            }
+        else:
+            return {
+                "statusCode": 500,
+                "body": f"Error rearranging item. DynamoDB returned status code {response['ResponseMetadata']['HTTPStatusCode']}."
             }
