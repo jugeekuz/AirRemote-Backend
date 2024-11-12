@@ -104,7 +104,12 @@ class DevicesModel(ObjectDynamodb):
         
         self.validator.validate(device, params=['macAddress'])
 
-        return self.delete_item(device)
+        response = self.delete_item(device)
+        
+        if response['statusCode'] == 200:
+            _ = self.clean_order_indexes('macAddress')
+
+        return response
 
     @error_handler
     def get_connected_devices(self):

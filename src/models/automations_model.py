@@ -86,7 +86,12 @@ class AutomationsModel(ObjectDynamodb):
 
         self.validator.validate(key, params=['automationId'])
         
-        return self.delete_item(key)
+        response = self.delete_item(key)
+        
+        if response['statusCode'] == 200:
+            _ = self.clean_order_indexes('automationId')
+
+        return response
     
     @error_handler
     def set_automation_state(self, key: dict, state: str):

@@ -123,7 +123,12 @@ class RemotesModel(ObjectDynamodb):
         
         self.validator.validate(remote, params=['remoteName'])
 
-        return self.delete_item(remote)
+        response = self.delete_item(remote)
+
+        if response['statusCode'] == 200:
+            res = self.clean_order_indexes('remoteName')
+
+        return response
 
     @error_handler
     def get_button(self, remote: dict, button: dict):

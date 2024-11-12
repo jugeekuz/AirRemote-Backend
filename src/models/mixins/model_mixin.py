@@ -385,3 +385,93 @@ class ObjectDynamodb:
                 "statusCode": 500,
                 "body": f"Error rearranging item. DynamoDB returned status code {response['ResponseMetadata']['HTTPStatusCode']}."
             }
+    
+    @error_handler
+    def clean_order_indexes(self, primary_key_field: str):
+        '''
+        If we delete an item the middle item on a list w/ order indexes [0,1,2], then the order indexes of the list will be [0,2].
+        This method cleans the list so there are no gaps in between.
+        '''
+        response = self.scan_items()
+
+        if not check_response(response):
+            return {
+                "statusCode": 500,
+                "body": "Error while retrieving items."
+            }
+
+        items = response['body']
+
+        if 'orderIndex' not in items[0]:
+            return {
+                "statusCode": 400,
+                "body": "Table is not sortable."
+            }
+
+        order_indexes = [int(item['orderIndex']) for item in items]
+
+        if set(order_indexes) == set(range(0,len(items))):
+            return {
+                "statusCode": 400,
+                "body": "Nothing to clean. Order Indexes are valid."
+            }
+        
+        sorted_indexes = order_indexes.copy()
+        sorted_indexes.sort()
+
+        # The sorted order indexes now contains a mapping from old value (sorted_indexes[i]) to new value -> (i)
+        # To make the process more efficient we will create a hashmap mapping old indexes -> new indexes
+        # Such that indexes_mapping[old_index] == new_index
+        indexes_mapping = [-1]*(max(sorted_indexes)+1)
+        for (i,old_idx) in enumerate(sorted_indexes):
+            indexes_mapping[old_idx] = i
+            # if indexes_mapping[3] = 1 it means that the index 3 is now the second index in the list
+            # if indexes_mapping[i] == -1 it means that i doesnt exist
+
+        items_to_update = []
+        for (i, item) in enumerate(items):
+            old_index = int(item['orderIndex'])
+            new_index = indexes_mapping[old_index]
+
+            if old_index == new_index:
+                continue
+
+            item_to_update = {
+                "Key": {primary_key_field: item[primary_key_field]},
+                "Item": {":orderIndex": str(new_index)},
+            }
+            items_to_update.append(item_to_update)
+        
+        if len(items_to_update) == 0:
+            return {
+                "statusCode": 400,
+                "body": "Invalid request, no items to rearrange."
+            }
+        
+
+        transaction_items = [
+            {
+                'Update': {
+                    'TableName': self.table,
+                    'Key': serialize_item(item["Key"]),
+                    'UpdateExpression': "SET orderIndex = :orderIndex",
+                    'ExpressionAttributeValues': serialize_item(item["Item"]),
+                }
+            }
+            for item in items_to_update
+        ]
+        
+        response = self.dynamo_db.transact_write_items(
+            TransactItems=transaction_items
+        )
+
+        if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+            return {
+                "statusCode": 200,
+                "body": "Items cleaned successfully."
+            }
+        else :
+            return {
+                "statusCode": 500,
+                "body": "Unexpected error while cleaning items."
+            }
