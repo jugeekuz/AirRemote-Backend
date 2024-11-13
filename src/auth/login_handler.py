@@ -49,7 +49,8 @@ def handle(event, context):
         cookie['refreshToken']['httponly'] = True
         cookie['refreshToken']['secure'] = True  
         cookie['refreshToken']['path'] = '/'
-        cookie['refreshToken']['samesite'] = 'None'
+        cookie['refreshToken']['domain'] = '.air-remote.pro'
+        cookie['refreshToken']['samesite'] = 'Strict'
         cookie['refreshToken']['expires'] = expiration_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT") 
         response_data = {
             "message": "Login successful",

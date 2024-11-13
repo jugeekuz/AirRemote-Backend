@@ -12,7 +12,9 @@ def handle(event, context):
     try:
         USER_POOL_ID = os.getenv('USER_POOL_ID')
         CLIENT_ID = os.getenv('CLIENT_ID')
-        cookies = event.get('headers', {}).get('Cookie', '')
+        cookies = event.get('headers', {}).get('cookie', '')
+        if not cookies :
+            cookies = event.get('headers', {}).get('Cookie', '')
         cors_headers = {
             'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
             'Access-Control-Allow-Methods': '*',
@@ -43,18 +45,18 @@ def handle(event, context):
         }
 
         response = cognito.admin_initiate_auth(**params)
-
         new_access_token = response['AuthenticationResult']['AccessToken']
         new_id_token = response['AuthenticationResult'].get('IdToken')
         
         expires_in = response['AuthenticationResult']['ExpiresIn']
-        expiration_time = datetime.utcnow() + timedelta(seconds=expires_in)
+        expiration_time = datetime.utcnow() + timedelta(days=30)
         cookie = SimpleCookie()
         cookie['refreshToken'] = refresh_token
         cookie['refreshToken']['httponly'] = True
         cookie['refreshToken']['secure'] = True  
         cookie['refreshToken']['path'] = '/'
-        cookie['refreshToken']['samesite'] = 'None'
+        cookie['refreshToken']['domain'] = '.air-remote.pro'
+        cookie['refreshToken']['samesite'] = 'Strict'
         cookie['refreshToken']['expires'] = expiration_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
         
         return {

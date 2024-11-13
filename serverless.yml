@@ -9,6 +9,7 @@ plugins:
 custom:
   configFilePath: './config.json'
   corsOrigin: ${file(${self:custom.configFilePath}):corsOrigin, "https://localhost:3000"}
+  cognitoDomain: "https://air-remote.auth.eu-central-1.amazoncognito.com"
   scriptable:
     hooks:
       before:package:createDeploymentArtifacts: "node ./scripts/predeploy.js" 
@@ -158,6 +159,7 @@ provider:
     USER_POOL_ID: { Ref: CognitoUserPool }
     CLIENT_ID: { Ref: CognitoUserPoolClient }
     CORS_ORIGIN: ${self:custom.corsOrigin}
+    COGNITO_DOMAIN: ${self:custom.cognitoDomain}
 
 functions:
   signupHandler:
@@ -201,6 +203,22 @@ functions:
     events:
       - http:
             path: auth/refresh-token
+            method: post
+            cors:  
+              origin: ${self:custom.corsOrigin}
+              headers:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                  - X-Amz-User-Agent
+              allowCredentials: true
+  oauthHandler:
+    handler: src/auth/oauth2_handler.handle
+    events:
+      - http:
+            path: auth/0auth2/token
             method: post
             cors:  
               origin: ${self:custom.corsOrigin}
