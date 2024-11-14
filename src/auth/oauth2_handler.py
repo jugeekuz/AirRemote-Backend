@@ -2,11 +2,15 @@ import json
 import os
 import urllib.error
 import boto3
+import sys
+sys.path.insert(0, 'src/vendor')
+import jwt
 from datetime import datetime, timedelta
 from .utils import send_response
 from http.cookies import SimpleCookie
 import urllib.parse
 import urllib.request
+from ..models import RegisteredUsersModel
 
 cognito = boto3.client('cognito-idp')
 
@@ -16,6 +20,7 @@ def handle(event, context):
         USER_POOL_ID = os.getenv('USER_POOL_ID')
         CLIENT_ID = os.getenv('CLIENT_ID')
         CORS_ORIGIN = os.getenv('CORS_ORIGIN')
+        USERS_MODEL = os.getenv('REGISTERED_USERS_TABLE_NAME')
 
         cors_headers = {
             'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
@@ -46,16 +51,25 @@ def handle(event, context):
 
         request_url = f"{COGNITO_DOMAIN}/oauth2/token"
         request = urllib.request.Request(request_url, data=encoded_data, headers=headers, method='POST')
-        print(request)
         try:
 
             with urllib.request.urlopen(request) as response:
                 response_data = response.read().decode("utf-8")
-                print(response_data)
                 tokens = json.loads(response_data)
 
             if not isinstance(tokens, dict) or not ("refresh_token" in tokens):
                 raise urllib.error.HTTPError
+            
+            # Check if user is registered by admin
+            decoded_token = jwt.decode(tokens.get('id_token'), options={"verify_signature": False})
+
+            # Extract the email from the decoded token
+            email = decoded_token.get('email')
+
+            users = RegisteredUsersModel(USERS_MODEL)
+            user_response = users.get_user({"userEmail": email})
+            if user_response['statusCode'] != 200:
+                return send_response(403, {"message": "User hasn't been given access to the app"})
             
             expiration_time = datetime.utcnow() + timedelta(days=30)
             cookie = SimpleCookie()
@@ -64,9 +78,10 @@ def handle(event, context):
             cookie['refreshToken']['secure'] = True  
             cookie['refreshToken']['path'] = '/'
             cookie['refreshToken']['domain'] = '.air-remote.pro'
-            cookie['refreshToken']['samesite'] = 'Strict'
+            cookie['refreshToken']['samesite'] = 'None'
             cookie['refreshToken']['expires'] = expiration_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
-            res = {
+            
+            return {
                 "statusCode": 200,
                 'headers': {
                     "Content-Type": "application/json",
@@ -78,24 +93,9 @@ def handle(event, context):
                     "id_token": tokens.get("id_token")
                 })
             }
-            print(res)
-            return res
-            # return {
-            #     "statusCode": 200,
-            #     'headers': {
-            #         "Content-Type": "application/json",
-            #         **cors_headers,
-            #         "Set-Cookie": cookie.output(header='', sep='')
-            #     },
-            #     "body": json.dumps({
-            #         "access_token": tokens.get("access_token"),
-            #         "id_token": tokens.get("id_token")
-            #     })
-            # }
 
         except urllib.error.HTTPError as e:
             error_message = e.read().decode("utf-8")
-            print(error_message)
             return {
                 "statusCode": e.code,
                 **cors_headers,

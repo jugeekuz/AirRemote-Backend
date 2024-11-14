@@ -4,10 +4,10 @@ import boto3
 from datetime import datetime, timedelta, time
 from .utils import send_response, validate_input
 from http.cookies import SimpleCookie
-
+from ..models import RegisteredUsersModel
 cognito = boto3.client('cognito-idp')
 CORS_ORIGIN = os.getenv('CORS_ORIGIN')
-
+USERS_MODEL = os.getenv('REGISTERED_USERS_TABLE_NAME')
 def handle(event, context):
     try:
         cors_headers = {
@@ -26,6 +26,14 @@ def handle(event, context):
         USER_POOL_ID = os.getenv('USER_POOL_ID')
         CLIENT_ID = os.getenv('CLIENT_ID')
 
+        # Check if user is registered by admin
+        users = RegisteredUsersModel(USERS_MODEL)
+        user_response = users.get_user({"userEmail": email})
+        print(email)
+        print(user_response)
+        if user_response['statusCode'] != 200:
+            return send_response(403, {"message": "User hasn't been given access to the app"})
+        
         params = {
             'AuthFlow': 'ADMIN_NO_SRP_AUTH',
             'UserPoolId': USER_POOL_ID,
@@ -50,15 +58,16 @@ def handle(event, context):
         cookie['refreshToken']['secure'] = True  
         cookie['refreshToken']['path'] = '/'
         cookie['refreshToken']['domain'] = '.air-remote.pro'
-        cookie['refreshToken']['samesite'] = 'Strict'
-        cookie['refreshToken']['expires'] = expiration_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT") 
+        cookie['refreshToken']['samesite'] = 'None'
+        cookie['refreshToken']['expires'] = expiration_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
+
         response_data = {
             "message": "Login successful",
             "access_token": access_token,
             "id_token": id_token
         }
 
-        response = {
+        return {
             "statusCode": 200,
             "headers": {
                 "Content-Type": "application/json",
@@ -66,9 +75,7 @@ def handle(event, context):
                 "Set-Cookie": cookie.output(header='', sep='')
             },
             "body": json.dumps(response_data)
-        }
-
-        return response
+        }        
 
     except cognito.exceptions.NotAuthorizedException:
         return send_response(401, {"message": "Invalid username or password"})
