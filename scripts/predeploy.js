@@ -7,7 +7,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-let corsOrigin = 'https://localhost:3000';
+let corsOrigin = 'https://air-remote.pro';
 
 const message = `
 ==================================================================================

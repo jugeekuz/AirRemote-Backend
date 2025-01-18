@@ -9,18 +9,27 @@ cognito = boto3.client('cognito-idp')
 CORS_ORIGIN = os.getenv('CORS_ORIGIN')
 USERS_MODEL = os.getenv('REGISTERED_USERS_TABLE_NAME')
 def handle(event, context):
+    body = event.get('body','')
+    body = json.loads(body) if body else ''
+    cors_headers = {
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': '*',
+        'Access-Control-Allow-Origin': CORS_ORIGIN,
+        "Access-Control-Allow-Credentials": 'true'
+    }
     try:
-        cors_headers = {
-            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-            'Access-Control-Allow-Methods': '*',
-            'Access-Control-Allow-Origin': CORS_ORIGIN,
-            "Access-Control-Allow-Credentials": 'true'
-        }
+        route_key = event["httpMethod"] + ' ' + event['resource']
+
+        if route_key == "POST /auth/login/keep-alive":
+            return send_response(200, {"message": "success"})
+    except:
+        pass
+    try:
+
         is_valid = validate_input(event['body'])
         if not is_valid:
             return send_response(400, {'message': 'Invalid input'})
 
-        body = json.loads(event['body'])
         email = body.get('email')
         password = body.get('password')
         USER_POOL_ID = os.getenv('USER_POOL_ID')
@@ -29,8 +38,7 @@ def handle(event, context):
         # Check if user is registered by admin
         users = RegisteredUsersModel(USERS_MODEL)
         user_response = users.get_user({"userEmail": email})
-        print(email)
-        print(user_response)
+
         if user_response['statusCode'] != 200:
             return send_response(403, {"message": "User hasn't been given access to the app"})
         
@@ -58,7 +66,7 @@ def handle(event, context):
         cookie['refreshToken']['secure'] = True  
         cookie['refreshToken']['path'] = '/'
         cookie['refreshToken']['domain'] = '.air-remote.pro'
-        cookie['refreshToken']['samesite'] = 'None'
+        cookie['refreshToken']['samesite'] = 'Strict'
         cookie['refreshToken']['expires'] = expiration_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
 
         response_data = {
@@ -84,4 +92,5 @@ def handle(event, context):
         return send_response(404, {"message": "User not found"})
 
     except Exception as e:
+        print(f"error {e}")
         return send_response(500, {"message": "An error occurred", "error": str(e)})

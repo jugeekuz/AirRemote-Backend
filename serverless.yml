@@ -8,8 +8,9 @@ plugins:
 
 custom:
   configFilePath: './config.json'
-  corsOrigin: ${file(${self:custom.configFilePath}):corsOrigin, "https://localhost:3000"}
+  corsOrigin: ${file(${self:custom.configFilePath}):corsOrigin, "https://air-remote.pro"}
   cognitoDomain: "https://air-remote.auth.eu-central-1.amazoncognito.com"
+  adminEmail: "jugeekuz@gmail.com"
   scriptable:
     hooks:
       before:package:createDeploymentArtifacts: "node ./scripts/predeploy.js" 
@@ -96,6 +97,16 @@ provider:
 
         - Effect: Allow
           Action:
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+            - "dynamodb:UpdateItem"
+            - "dynamodb:DeleteItem"
+            - "dynamodb:Scan"
+          Resource:
+            - { "Fn::GetAtt": ["RegisteredUsers", "Arn"] }
+
+        - Effect: Allow
+          Action:
             - "dynamodb:ConditionCheckItem"
             - "dynamodb:GetItem"
             - "dynamodb:PutItem"
@@ -142,6 +153,7 @@ provider:
   environment: 
     CLIENTS_TABLE_NAME: ${self:provider.stage}WSClients
     REMOTES_TABLE_NAME: ${self:provider.stage}IRRemotes
+    REGISTERED_USERS_TABLE_NAME: ${self:provider.stage}RegisteredUsers
     IOT_DEVICES_TABLE_NAME: ${self:provider.stage}IoTDevices
     REQUEST_POOL_TABLE_NAME: ${self:provider.stage}RequestPool
     AUTOMATIONS_TABLE_NAME: ${self:provider.stage}Automations
@@ -181,6 +193,7 @@ functions:
 
   loginHandler:
     handler: src/auth/login_handler.handle
+    #provisionedConcurrency: 1
     events:
       - http:
             path: auth/login
@@ -195,14 +208,8 @@ functions:
                   - X-Amz-Security-Token
                   - X-Amz-User-Agent
               allowCredentials: true
-
-  refreshHandler:
-    handler: src/auth/refresh_handler.handle
-    provisionedConcurrency: 1
-    memorySize: 512
-    events:
       - http:
-            path: auth/refresh-token
+            path: auth/login/keep-alive
             method: post
             cors:  
               origin: ${self:custom.corsOrigin}
@@ -213,12 +220,43 @@ functions:
                   - X-Api-Key
                   - X-Amz-Security-Token
                   - X-Amz-User-Agent
-              allowCredentials: true
+
+  refreshHandler:
+    handler: src/auth/refresh_handler.handle
+    #provisionedConcurrency: 1
+    memorySize: 512
+    events:
+      - http:
+          path: auth/refresh-token
+          method: post
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+            allowCredentials: true
+      - http:
+          path: auth/keep-alive
+          method: post
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+      
   oauthHandler:
     handler: src/auth/oauth2_handler.handle
     events:
       - http:
-            path: auth/0auth2/token
+            path: auth/oauth2/token
             method: post
             cors:  
               origin: ${self:custom.corsOrigin}
@@ -230,6 +268,18 @@ functions:
                   - X-Amz-Security-Token
                   - X-Amz-User-Agent
               allowCredentials: true
+      - http:
+          path: auth/oauth2/keep-alive
+          method: post
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
 
   logoutHandler:
     handler: src/auth/logout_handler.handle
@@ -248,12 +298,33 @@ functions:
                   - X-Amz-User-Agent
               allowCredentials: true
 
+  registerUserHandler:
+    handler: src/auth/register_user_handler.handle
+    events:
+      - http:
+            path: auth/registeruser
+            authorizer:
+              type: COGNITO_USER_POOLS
+              authorizerId:
+                Ref: ApiGatewayAuthorizer
+            method: post
+            cors:  
+              origin: ${self:custom.corsOrigin}
+              headers:
+                  - Content-Type
+                  - Authorization
+                  - X-Amz-Date
+                  - X-Api-Key
+                  - X-Amz-Security-Token
+                  - X-Amz-User-Agent
+              allowCredentials: true
 
   automationsHandler:
     handler: src/automations_handler.handle  
 
   websocketHandler:
     handler: src/websockets_router.handle
+    #provisionedConcurrency: 2
     events:
       - websocket:
           route: $connect
@@ -265,12 +336,37 @@ functions:
           route: ack
       - websocket:
           route: error
+      - http:
+          path: wss/keep-alive
+          method: post
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
 
   httpDataHandler:
     handler: src/http_router.handle
-    provisionedConcurrency: 1
+    #provisionedConcurrency: 5
     memorySize: 512
     events:
+      # KEEP-ALIVE
+      - http:
+          path: /api/keep-alive
+          method: POST
+          cors:  
+            origin: ${self:custom.corsOrigin}
+            headers:
+                - Content-Type
+                - Authorization
+                - X-Amz-Date
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
       # REMOTES
       - http:
           path: /api/remotes
@@ -791,6 +887,20 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: remoteName
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
+
+    RegisteredUsers:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.REGISTERED_USERS_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: userEmail
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userEmail
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 2

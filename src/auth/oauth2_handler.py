@@ -28,6 +28,14 @@ def handle(event, context):
             'Access-Control-Allow-Origin': CORS_ORIGIN,
             "Access-Control-Allow-Credentials": True
         }
+        
+        body = event.get('body','')
+        body = json.loads(body) if body else ''
+
+        route_key = event["httpMethod"] + ' ' + event['resource']
+
+        if route_key == "POST /auth/keep-alive":
+            return send_response(200, {"message": "success"})
 
         body = json.loads(event.get('body', {}))
         code = body.get('code', {})
@@ -78,7 +86,7 @@ def handle(event, context):
             cookie['refreshToken']['secure'] = True  
             cookie['refreshToken']['path'] = '/'
             cookie['refreshToken']['domain'] = '.air-remote.pro'
-            cookie['refreshToken']['samesite'] = 'None'
+            cookie['refreshToken']['samesite'] = 'Strict'
             cookie['refreshToken']['expires'] = expiration_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
             
             return {

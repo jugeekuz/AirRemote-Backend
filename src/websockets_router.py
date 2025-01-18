@@ -6,6 +6,7 @@ from .controllers.websocket_controllers.ack_controller import ACKController
 from .controllers.websocket_controllers.error_controller import ErrorController
 from .utils.helpers import error_handler, check_response
 from .controllers.security_controllers.utils import hash_token
+from .auth.utils import send_response
 from .controllers.security_controllers.token_controller import validate_websocket_jwt
 
 WSSAPIGATEWAYENDPOINT = os.getenv("WSSAPIGATEWAYENDPOINT")
@@ -71,6 +72,13 @@ def disconnect(connection: dict):
 
 @error_handler
 def handle(event, context):
+    try:
+        route_key = event["httpMethod"] + ' ' + event['resource']
+        if route_key == "POST /wss/keep-alive":
+            return send_response(200, {"message": "success"})
+    except:
+        pass
+
     connection_id = str(event["requestContext"]["connectionId"])
     route_key = str(event["requestContext"]["routeKey"])
     query_params = event.get('queryStringParameters', {})

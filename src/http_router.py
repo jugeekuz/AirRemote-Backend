@@ -5,6 +5,7 @@ from .controllers.websocket_controllers.cmd_controller import CMDController
 from .controllers.automation_controllers.automation_controller import create_automation
 from .controllers.automation_controllers.automation_controller import create_automation, delete_automation, set_automation_state
 from .controllers.cost_controllers.cost_controller import get_monthly_cost
+from .auth.utils import send_response
 from .controllers.security_controllers.token_controller import get_device_token, get_websocket_jwt
 from urllib.parse import unquote
 
@@ -24,6 +25,11 @@ def handle(event, context):
     body = event.get('body','')
     body = json.loads(body) if body else ''
     query_params = event.get('pathParameters','')
+
+    route_key = event["httpMethod"] + ' ' + event['resource']
+
+    if route_key == "POST /api/keep-alive":
+        return send_response(200, {"message": "success"})
     
     cmd_controller = CMDController(WSSAPIGATEWAYENDPOINT, None, requestpool, remotes, devices, automations)
 
@@ -67,7 +73,6 @@ def handle(event, context):
 
     }
 
-    route_key = event["httpMethod"] + ' ' + event['resource']
     cors_headers = {
         'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
         'Access-Control-Allow-Methods': '*',

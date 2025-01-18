@@ -12,6 +12,15 @@ def handle(event, context):
     try:
         USER_POOL_ID = os.getenv('USER_POOL_ID')
         CLIENT_ID = os.getenv('CLIENT_ID')
+
+        body = event.get('body','')
+        body = json.loads(body) if body else ''
+
+        route_key = event["httpMethod"] + ' ' + event['resource']
+
+        if route_key == "POST /auth/keep-alive":
+            return send_response(200, {"message": "success"})
+
         cookies = event.get('headers', {}).get('cookie', '')
         if not cookies :
             cookies = event.get('headers', {}).get('Cookie', '')
