@@ -1,14 +1,8 @@
-# AirRemote - Serverless AWS Backend
-
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-## Description
-This project is the IoT part of the overall project named AirRemote. The purpose of this project is to provide functionality to the ESP32 to read and execute IR remote control commands, being controlled by WebSockets through the AirRemote serverless back-end.
 <p align="center">
   <img width="340" src="assets/logo-black.png#gh-light-mode-only" alt="AirRemote Logo">
   <img width="340" src="assets/logo-white.png#gh-dark-mode-only" alt="AirRemote Logo">
 </p>
-<h2 align="center">AirRemote Embedded Repository ⚡</h2>
+<h2 align="center">AirRemote Backend Repository ⚡</h2>
 <p align="center">
     <a href="/LICENSE"><img alt="GPL-V3.0 License" src="https://img.shields.io/badge/License-GPLv3-orange.svg"></a>
     <a href="https://github.com/jugeekuz/AirRemote-Embedded/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/jugeekuz/AirRemote-Embedded?color=green"></a>
@@ -41,10 +35,10 @@ With these capabilities, AirRemote turns virtually any device with an IR remote 
 
 The **AirRemote** project is divided into three main components. Each part contains instructions on how to deploy / install it:
 
-- [**Embedded Device (This Repository):**](https://github.com/jugeekuz/AirRemote-Embedded) 
+- [**Embedded Device:**](https://github.com/jugeekuz/AirRemote-Embedded) 
     - A C/C++ PlatformIO project, involving ESP32-based unit with an IR receiver and 8 powerful IR blasters. It records IR signals from any remote control and replays them across the room, enabling universal compatibility.
     
-- [**Serverless Backend:**](https://github.com/jugeekuz/AirRemote-Backend) 
+- [**Serverless Backend (This Repository):**](https://github.com/jugeekuz/AirRemote-Backend) 
     - A Python project using Serverless framework to deploy a scalable AWS-based backend powered by Lambda, DynamoDB, API Gateway, and EventBridge. It ensures secure command storage, user authorization, and efficient routing between the web interface and devices.
 
 - [**Frontend:**](https://github.com/jugeekuz/AirRemote-Frontend) 
@@ -52,48 +46,37 @@ The **AirRemote** project is divided into three main components. Each part conta
 
 ---
 
-## ⚙️ Installation and Setup
+## 🚀 Setup & Deployment
 
-### 🔨 Creating AirRemote Device
-The AirRemote device includes an IR receiver, enabling it to decode incoming IR commands and 8 powerful IR transmitters, facing in all directions, to replay the captured IR signals across a room wherever your device may be.
-To create the AirRemote board, you can either:
-- Create the PCB, through the Gerber file provided and the parts found under `assets/board/`.
-- Create your own design, through the EasyEDA json file provided under `assets/board/`.
-<div style="text-align:left; margin-left:20px;">
-    <img src="./assets/pcb-sketch.png" alt="Alt Text" width="450">
-</div>
-<br/>
-You are going to find everything you need to get started under `assets/`. 
-
-### 🛠️ Flashing AirRemote Firmware
-To build and upload AirRemote, you will need:
- - [Visual Studio Code](https://code.visualstudio.com/download)
- - [PlatformIO IDE VSCode extension](https://platformio.org/)
- <!-- - [AirRemote device built](#creating-air-remote) -->
-
-To flash the AirRemote firmware onto the device:
+To upload the AirRemote serverless backend to AWS:
+### Prerequisites
+ 1. Make sure you have npm installed in your system:
+    ```bash
+    npm -v
+    ```
+ 2. Make sure you have [AWS CLI](https://aws.amazon.com/cli/) installed and configured on your computer.
+    ```bash
+    aws --v
+    ```
+ 3. Make sure that you have [Serverless Framework v3](https://www.serverless.com/) installed and configured on your computer.
+    ```bash
+    serverless -v
+    ```
+### Deployment
  1. Clone this repository: 
     ```bash
-    git clone https://github.com/jugeekuz/AirRemote-Embedded.git
+    git clone https://github.com/jugeekuz/AirRemote-Backend.git
     ```
- 2. Connect the AirRemote device to your computer.
- 3. Click the `PlatformIO: Upload` button to flash the firmware onto the device.
+ 2. Install dependencies:
+    ```bash
+    npm install
+    ```
+ 3. Deploy using Serverless:
+    ```bash
+    serverless deploy
+    ```
+ 4. 
 
-### 🔑 Configure AirRemote Credentials
-<div style="text-align:left; margin-left:60px;">
-    <img src="./assets/air-remote-wifi-setup.gif" alt="AirRemote Credentials Setup" width="320">
-</div>
-
-To configure credentials to AirRemote:
- 1. Go to your AirRemote web interface -> **Devices** -> **Add Device** -> Name the device and click on `Next`.
- 2. Save the credentials shown in a text file (as you'll need to input them to the device) and click on `Finish`.
- 3. Connect your AirRemote device to power and click on the Reset button.
- 4. When the light starts blinking slowly, open a mobile device and connect to the `AirRemote-Portal` WiFi.
- 5. A captive portal, as shown below, should open (if not, go to a browser and hit `4.3.2.1` or `captive.apple.com` on iOS devices).
- 6. Click on **Complete Setup**, if setting up for the first time.
- 7. Follow the instructions to connect to WiFi and then provide the credentials saved in Step 2.
-Your device is ready to use!
-If there is an error during configuration, restart the device and follow the same process again.
 
 ---
 

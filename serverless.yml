@@ -6,15 +6,7 @@ plugins:
   - serverless-python-requirements
   - serverless-scriptable-plugin
 
-custom:
-  configFilePath: './config.json'
-  corsOrigin: ${file(${self:custom.configFilePath}):corsOrigin, "https://air-remote.pro"}
-  cognitoDomain: "https://air-remote.auth.eu-central-1.amazoncognito.com"
-  adminEmail: "jugeekuz@gmail.com"
-  scriptable:
-    hooks:
-      before:package:createDeploymentArtifacts: "node ./scripts/predeploy.js" 
-      after:deploy:deploy: "node ./scripts/createEnv.js"
+custom: ${file(./serverless.config.js)}
 
 provider:
   name: aws

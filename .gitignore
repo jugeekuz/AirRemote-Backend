@@ -3,3 +3,5 @@ node_modules
 outputs/
 src/vendor/
 .env
+package-lock.json
+Pipfile.lock
