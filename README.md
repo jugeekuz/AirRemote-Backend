@@ -1,6 +1,6 @@
 <p align="center">
-  <img width="340" src="src/assets/imgs/logo-black.png#gh-light-mode-only" alt="AirRemote Logo">
-  <img width="340" src="src/assets/imgs/logo-white.png#gh-dark-mode-only" alt="AirRemote Logo">
+  <img width="340" src="assets/logo-black.png#gh-light-mode-only" alt="AirRemote Logo">
+  <img width="340" src="assets/logo-white.png#gh-dark-mode-only" alt="AirRemote Logo">
 </p>
 <h2 align="center">AirRemote Backend Repository ⚡</h2>
 <p align="center">
@@ -12,7 +12,7 @@
 Turn your old remote-controlled devices into smart devices! With AirRemote, you can turn any legacy device that can be controlled by an IR remote, into a remotely accesible smart device.
 
 <p align="center">
-    <img src="./src/assets/imgs/air-remote-demo-short.gif" alt="AirRemote Short Demo" width="320">
+    <img src="./assets/air-remote-demo-short.gif" alt="AirRemote Short Demo" width="320">
 </p>
 
 
@@ -106,7 +106,7 @@ The **AirRemote** project is divided into three main components. Each part conta
     ```
 3. #### Install environment dependencies:
     ```bash
-    pip install -r requirements.txt -t ./vendor
+    pip install -r requirements.txt -t ./src/vendor
     ```
 4. #### First deployment
     - In `config.json` update `<AWS_REGION>` to your region id.
