@@ -23,8 +23,9 @@ deploying
 
 2. This process will create a .env file in the /outputs directory. This file will 
    contain all the necessary endpoints for the frontend.
-   - Make sure to place the .env file in the base directory of the frontend project 
-     before deployment of the frontend project.
+   - Make sure to replace the \`<CLIENT-ID>\` \`<COGNITO-DOMAIN>\` with your 
+   values manually and place the .env file in the base directory of the frontend 
+   project before deployment of the frontend project.
 
 ==================================================================================
 
