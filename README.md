@@ -109,17 +109,73 @@ The **AirRemote** project is divided into three main components. Each part conta
     pip install -r requirements.txt -t ./vendor
     ```
 4. #### First deployment
-    Deploy once initially, without configuring anything else, we will redeploy later.
+    - In `config.json` update `<AWS_REGION>` to your region id.
+    - Deploy once initially, without configuring anything else, we will redeploy later.
+        ```bash
+        serverless deploy
+        ```
+5. #### Create Cognito Domain
+    1. Get the User Pool id:
+    ```bash
+    aws cognito-idp list-user-pools
+    ```
+    2. Create User Pool Domain:
+    ```bash
+    aws cognito-idp create-user-pool-domain --user-pool-id <your-user-pool-id> --domain <your-domain-prefix>
+    ```
+6. #### Update the `config.json`
+    Update the config.json with:
+    - `<CORS_ORIGIN>` - Your domain name `https://example.com`
+    - `<COGNITO_DOMAIN>` - Your cognito domain `https://<YOUR_DOMAIN_PREFIX>.auth.eu-central-1.amazoncognito.com`
+    - `<ADMIN_EMAIL>` - Your email you'll register on the app with. (For a user to be registered he has to be invited to the app and new users can be invited through the web interface)
+    - `<AWS_REGION>` - Your region id (you should have changed this in previous part)
+
+7. #### Final deployment
     ```bash
     serverless deploy
     ```
-5. 
+8. #### Configure Social Sign On (Google) - optional
+    1. Go to [Google Cloud Console](https://console.cloud.google.com/cloud-resource-manager) -> Create Project -> Name Project -> Create.
+    2. On the Navigation bar to the left press `APIs and Services` -> Credentials -> Create Credentials -> OAuth Client ID
+    3. Press `Configure Consent Screen`-> External (you can change this later for production) and fill the following:
+        - `App name` - Your app name
+        - `User support email` - Your email
+        - `App logo` - Your app logo (optional)
+        - `Application home page` - Your domain name `https://example.com`
+        - `Authorised domains` - Your domain name (without "https://")
+        - `Developer contact information` - Your e-mail
+    4. Finish creating and add test user under `OAuth consent screen`
+    5. Go back to `APIs and Services` -> Credentials -> Create Credentials -> OAuth Client ID -> Web application -> Next
+    6. Under `Authorized JavaScript origins` add :
+        ```text
+        https://<YOUR-DOMAIN-NAME>
+        https://<YOUR-DOMAIN-PREFIX>.auth.eu-central-1.amazoncognito.com`
+        ```
+    7. Under `Authorised redirect URIs` add: 
+        ```text
+        https://<YOUR-DOMAIN-PREFIX>.auth.eu-central-1.amazoncognito.com/oauth2/idpresponse
+        ```
+    8. Save and keep the `Client ID` and `Client secret`.
+    9. Go to AWS Cognito -> User Pools -> YourUserPool -> Social and external providers -> Add identity provider -> Google
+    10. Under `Client ID`, `Client secret` enter the values from previous step.
+    ``
+    11. Under `Authorized scopes` enter:
+    ```text
+    openid profile email
+    ```
+    12. Map attributes between Google and your user pool:
+     - `email` - `email`
+     - `nickname` - `name`
+     - `username` - `sub`
+
+9. #### Update environment file and go to Frontend deployment
+ - Update `<YOUR-APP-CLIENT-ID>` w/ your Cognito App Client Id and `<YOUR-COGNITO-DOMAIN>` with your Cognito domain.
+ - Place it in the root folder of the [Frontend](https://github.com/jugeekuz/AirRemote-Frontend) and continue with the deployment of the frontend.
 ---
 
 ## 📜 License
 Licensed under the GPL V3.0 License.
 <a href="https://github.com/jugeekuz/AirRemote-Embedded/blob/master/LICENSE">🔗 View License Details </a>
-
 
 ---
 
