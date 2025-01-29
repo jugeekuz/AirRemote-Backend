@@ -12,7 +12,7 @@ provider:
   name: aws
   runtime: python3.12
   stage: ${opt:stage, 'dev'}
-  region: eu-central-1
+  region: ${self:custom.region}
   timeout: 30
   apiGateway:
     # restApi:

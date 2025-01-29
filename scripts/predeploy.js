@@ -18,13 +18,13 @@ Initializing the application deployment...
 ==================================================================================
 
 Instructions:
-1. This process will create a .env file in the /outputs directory. This file will 
+1. Update the \`config.json\` under the root directory with your own values before
+deploying
+
+2. This process will create a .env file in the /outputs directory. This file will 
    contain all the necessary endpoints for the frontend.
    - Make sure to place the .env file in the base directory of the frontend project 
      before deployment of the frontend project.
-
-2. Update the \`config.json\` under the root directory with your own values before
-deploying
 
 ==================================================================================
 
@@ -41,4 +41,5 @@ rl.question(message, (answer) => {
 
   generateJWTSecret();
   console.log("🚀 Starting deployment process...");
+  rl.close();
 });
