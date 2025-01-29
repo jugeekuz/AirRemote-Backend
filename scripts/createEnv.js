@@ -29,7 +29,7 @@ const { execSync } = require('child_process');
       .join('\n');
 
     const envDir = './outputs';
-    const envPath = path.join(envDir, '.env');
+    const envPath = './outputs/.env';
     
     if (!fs.existsSync(envDir)) {
       fs.mkdirSync(envDir, { recursive: true });
