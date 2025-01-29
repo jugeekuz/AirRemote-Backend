@@ -16,7 +16,16 @@ const { execSync } = require('child_process');
     
     const envContent = `VITE_STAGE="${stage}"\n` + 
       urls
-      .map((url) => url.includes('https') ? `VITE_BASE_URL="${url}"` : `VITE_WSS_URL="${url}"`)
+      .map((url) => {
+        url.includes('https') ? 
+        `VITE_BASE_URL="${url}"
+        VITE_API_URL="${url}/api"
+        VITE_AUTH_URL="${url}/auth"
+        VITE_APP_CLIENT_ID="<YOUR-APP-CLIENT-ID>"
+        VITE_COGNITO_DOMAIN="<YOUR-COGNITO-DOMAIN>"
+        ` : 
+        `VITE_WSS_URL="${url}"`
+      })
       .join('\n');
 
     // Path to save the .env file
