@@ -28,8 +28,12 @@ const { execSync } = require('child_process');
       })
       .join('\n');
 
-    // Path to save the .env file
-    const envPath = './outputs/.env';
+    const envDir = './outputs';
+    const envPath = path.join(envDir, '.env');
+    
+    if (!fs.existsSync(envDir)) {
+      fs.mkdirSync(envDir, { recursive: true });
+    }
     fs.writeFileSync(envPath, envContent);
 
     console.log(`.env file created at ${envPath}`);
