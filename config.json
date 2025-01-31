@@ -1,6 +1,6 @@
 {
-  "corsOrigin": "https://air-remote.pro",
-  "cognitoDomain": "https://air-remote.auth.eu-central-1.amazoncognito.com",
-  "adminEmail": "jugeekuz@gmail.com",
-  "region": "eu-central-1"
+  "corsOrigin": "<CORS_ORIGIN>",
+  "cognitoDomain": "<COGNITO_DOMAIN>",
+  "adminEmail": "https://<YOUR_DOMAIN_PREFIX>.auth.eu-central-1.amazoncognito.com",
+  "region": "<ADMIN_EMAIL>"
 }
