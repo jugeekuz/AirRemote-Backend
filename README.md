@@ -31,7 +31,7 @@ AirRemote is a solution designed to modernize legacy remote-controlled devices b
 
 With these capabilities, AirRemote turns virtually any device with an IR remote into a smart, remotely controllable appliance.
 
-## 🎥 Demo
+<!-- ## 🎥 Demo
 <div align="center">
     <table>
     <tr>
@@ -71,7 +71,7 @@ With these capabilities, AirRemote turns virtually any device with an IR remote 
         </td>
     </tr>
     </table>
-</div>
+</div> -->
 
 ## 🌟 Project Overview
 
