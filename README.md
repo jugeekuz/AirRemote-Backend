@@ -32,27 +32,45 @@ AirRemote is a solution designed to modernize legacy remote-controlled devices b
 With these capabilities, AirRemote turns virtually any device with an IR remote into a smart, remotely controllable appliance.
 
 ## 🎥 Demo
-<div align="center" style="display: flex; flex-direction: row; justify-content: center; gap: 10px; flex-wrap: wrap;">
-  <div>
-    <h4>Login & Dashboard</h4>
-    <img src="./src/assets/imgs/air-remote-demo-short.gif" alt="Demo 1" width="300">
-  </div>
-  <div>
-    <h4>Add Remote and Execute</h4>
-    <img src="./src/assets/imgs/air-remote-demo-short.gif" alt="Demo 2" width="300">
-  </div>
-  <div>
-    <h4>Create Automations</h4>
-    <img src="./src/assets/imgs/air-remote-demo-short.gif" width="300">
-  </div>
-  <div>
-    <h4>Register Devices</h4>
-    <img src="./src/assets/imgs/air-remote-demo-short.gif" width="300">
-  </div>
-  <div>
-    <h4>Reorder & Edit tiles</h4>
-    <img src="./src/assets/imgs/air-remote-demo-short.gif" width="300">
-  </div>
+<div align="center">
+    <table>
+    <tr>
+        <td>
+            <div style="flex: 0 0 300px;">
+                <h4>Login & Dashboard</h4>
+                <img src="./assets/login.gif" alt="Demo 1" width="300">
+            </div>
+        </td>
+        <td>
+            <div style="flex: 0 0 300px;">
+                <h4>Add Remote and Execute</h4>
+                <img src="./assets/demo.gif" alt="Demo 2" width="300">
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div style="flex: 0 0 300px;">
+                <h4>Create Automations</h4>
+                <img src="./assets/automations.gif" width="300">
+            </div>
+        </td>
+        <td>
+            <div style="flex: 0 0 300px;">
+                <h4>Register Devices</h4>
+                <img src="./assets/wifi-setup.gif" width="300">
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div style="flex: 0 0 300px;">
+                <h4>Reorder & Edit tiles</h4>
+                <img src="./assets/rearrange.gif" width="300">
+            </div>
+        </td>
+    </tr>
+    </table>
 </div>
 
 ## 🌟 Project Overview
